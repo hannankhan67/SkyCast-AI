@@ -1,0 +1,58 @@
+{% extends 'layout.html' %}
+{% block title %}Historical Comparison — SkyCast{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Historical <span class="font-bold">Comparison</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Overlay the past 12 months of temperatures against 10 / 20 / 30-year climate baselines and explore on-this-day extremes.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] self-start">
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">City</label>
+        <select id="hist-city" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            <option value="karachi" selected>Karachi</option>
+            <option value="lahore">Lahore</option>
+            <option value="islamabad">Islamabad</option>
+            <option value="dubai">Dubai</option>
+            <option value="london">London</option>
+            <option value="newyork">New York</option>
+        </select>
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Baseline</label>
+        <select id="hist-baseline" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            <option value="30" selected>30-year average</option>
+            <option value="20">20-year average</option>
+            <option value="10">10-year average</option>
+        </select>
+        <button id="hist-load" class="btn-brand w-full rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-6 py-3 text-sm font-medium transition-all">Load Chart</button>
+
+        <div id="hist-anomaly" class="mt-6 rounded-2xl bg-white/10 border border-white/15 p-5 text-center">
+            <p class="text-xs uppercase tracking-widest text-sky-100/70">Anomaly vs 30-yr</p>
+            <p id="hist-anomaly-val" class="text-2xl font-light mt-1">—</p>
+            <p id="hist-anomaly-sub" class="text-xs text-sky-100/60 mt-1"></p>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2 flex flex-col gap-6">
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="relative h-96"><canvas id="hist-chart"></canvas></div>
+        </div>
+
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <h3 class="text-2xl font-light mb-5">On This <span class="font-bold text-sky-200">Day</span> — <span id="hist-otd-date" class="text-sky-200">—</span></h3>
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-4 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">Record High</p><p id="hist-otd-high" class="text-3xl font-light mt-1">—</p></div>
+                <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-4 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">Record Low</p><p id="hist-otd-low" class="text-3xl font-light mt-1">—</p></div>
+            </div>
+            <ul id="hist-otd-list" class="flex flex-col gap-2 text-sm text-sky-100/85"></ul>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/historical.js') }}"></script>
+{% endblock %}

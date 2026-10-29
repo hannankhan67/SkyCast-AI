@@ -1,0 +1,134 @@
+{% extends 'layout.html' %}
+{% block title %}Support — SkyCast{% endblock %}
+{% block meta_desc %}Open a support ticket, report issues, or request features for SkyCast.{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Feedback &amp; <span class="font-bold">Support</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Open a ticket — our team responds within 24 hours.</p>
+</header>
+
+{% if error %}
+<div class="mb-6 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-200 px-5 py-4 text-sm">
+    {{ error }}
+</div>
+{% endif %}
+
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- New Ticket Form -->
+    <div class="lg:col-span-1">
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <h3 class="text-2xl font-light mb-6">New <span class="font-bold text-sky-200">Ticket</span></h3>
+            <form id="support-form" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Subject</label>
+                    <input id="ticket-subject" type="text" placeholder="Brief summary of your issue..."
+                           class="w-full rounded-2xl bg-white/10 border border-white/25 text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/40" required>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Category</label>
+                    <select id="ticket-category"
+                            class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-4 py-3 text-sm [&>option]:text-slate-900">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Priority</label>
+                    <select id="ticket-priority"
+                            class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-4 py-3 text-sm [&>option]:text-slate-900">
+                        {% for pri in priorities %}
+                        <option value="{{ pri }}">{{ pri|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Message</label>
+                    <textarea id="ticket-body" rows="6" placeholder="Describe your issue in detail..."
+                              class="w-full rounded-2xl bg-white/10 border border-white/25 text-white px-4 py-3 text-sm font-light resize-none focus:outline-none focus:ring-2 focus:ring-white/40"></textarea>
+                </div>
+                <button type="submit"
+                        class="px-6 py-3 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 text-sm font-medium transition-all">
+                    Submit Ticket
+                </button>
+                <p id="ticket-form-msg" class="text-xs text-sky-100/60 font-light"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ticket List -->
+    <div class="lg:col-span-2">
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-light">Your <span class="font-bold text-sky-200">Tickets</span></h3>
+                <span class="text-xs text-sky-100/60 font-mono">{{ tickets|length }} ticket{{ '' if tickets|length == 1 else 's' }}</span>
+            </div>
+
+            {% if tickets %}
+            <div class="flex flex-col gap-3">
+                {% for t in tickets %}
+                <a href="{{ url_for('support.support_ticket_page', ticket_id=t.id) }}"
+                   class="block rounded-2xl bg-white/10 border border-white/15 px-5 py-4 transition-all hover:bg-white/15">
+                    <div class="flex items-center justify-between gap-4">
+                        <div>
+                            <p class="text-sm font-medium text-white">{{ t.subject }}</p>
+                            <p class="text-xs text-sky-100/60 font-light mt-1">
+                                Category: {{ t.category|title }} · Priority: {{ t.priority|title }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            {% set status_classes = {'open': 'text-amber-300', 'in_progress': 'text-sky-300', 'closed': 'text-slate-400'} %}
+                            <span class="text-xs {{ status_classes.get(t.status, 'text-slate-400') }} font-mono uppercase">{{ t.status }}</span>
+                            <span class="text-xs text-sky-100/40 font-mono">{{ t.created_at }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <p class="text-sky-100/60 font-light">No tickets yet. Create your first one using the form!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    "use strict";
+    var form = document.getElementById("support-form");
+    var msg = document.getElementById("ticket-form-msg");
+    if (form) {
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var payload = {
+                subject: document.getElementById("ticket-subject").value.trim(),
+                body: document.getElementById("ticket-body").value.trim(),
+                category: document.getElementById("ticket-category").value,
+                priority: document.getElementById("ticket-priority").value
+            };
+            fetch("/api/support/tickets", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
+              .then(function (res) {
+                  if (res.status === 201 && res.body.ok) {
+                      msg.textContent = "✅ Ticket submitted. Redirecting…";
+                      window.location.href = "/support/" + res.body.id;
+                  } else {
+                      msg.textContent = "⚠️ " + (res.body.error || "Could not submit ticket.");
+                  }
+              }).catch(function () {
+                  msg.textContent = "⚠️ Could not submit ticket.";
+              });
+        });
+    }
+})();
+</script>
+{% endblock %}
+

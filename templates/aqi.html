@@ -1,0 +1,63 @@
+{% extends 'layout.html' %}
+{% block title %}Air Quality Dashboard — SkyCast{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .aqi-card { transition: transform .2s ease; }
+  .aqi-card:hover { transform: translateY(-3px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Air Quality <span class="font-bold">Dashboard</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">24-hour PM2.5, O₃ and NO₂ levels with the US Air Quality Index, powered by the Open-Meteo Air-Quality API.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] self-start">
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">City</label>
+        <select id="aqi-city" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            {% for c in cities %}<option value="{{ c }}">{{ c|title }}</option>{% endfor %}
+        </select>
+        <button id="aqi-load" class="btn-brand w-full rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-6 py-3 text-sm font-medium transition-all">Refresh</button>
+        <div id="aqi-current-box" class="mt-6 rounded-2xl bg-white/10 border border-white/15 p-5 text-center">
+            <p class="text-xs uppercase tracking-widest text-sky-100/70">Current AQI</p>
+            <p id="aqi-current" class="text-4xl font-light mt-1">—</p>
+            <p id="aqi-cat" class="text-sm mt-1">—</p>
+        </div>
+        <p class="mt-4 text-xs text-sky-100/60 font-light">Peak (24h): <span id="aqi-peak">—</span></p>
+        <p class="text-xs text-sky-100/60 font-light">Source: <span id="aqi-source">—</span></p>
+    </div>
+
+    <div class="lg:col-span-3 flex flex-col gap-6">
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <h3 class="text-2xl font-light">24-Hour <span class="font-bold text-sky-200">Breakdown</span></h3>
+                <div class="flex flex-wrap gap-3 text-xs">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-300"></span>PM2.5</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-300"></span>O₃</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-400"></span>NO₂</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-400"></span>US AQI</span>
+                </div>
+            </div>
+            <div class="relative h-[28rem]"><canvas id="aqi-chart"></canvas></div>
+        </div>
+
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead><tr class="text-left text-[10px] uppercase tracking-widest text-sky-100/60 border-b border-white/10">
+                    <th class="py-3 pr-4 font-medium">Hour</th><th class="py-3 pr-4 font-medium">PM2.5</th>
+                    <th class="py-3 pr-4 font-medium">PM10</th><th class="py-3 pr-4 font-medium">O₃</th>
+                    <th class="py-3 pr-4 font-medium">NO₂</th><th class="py-3 font-medium">US AQI</th>
+                </tr></thead>
+                <tbody id="aqi-rows" class="text-sky-100/90"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/aqi.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends 'layout.html' %}
+{% block title %}Live Weather — SkyCast{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .hourly-scroll::-webkit-scrollbar { height: 8px; }
+  .hourly-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); border-radius: 999px; }
+  .hourly-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 999px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6 text-shadow-sm">
+    <div class="text-center md:text-left">
+        <h2 class="text-5xl md:text-6xl font-light mb-4">Live <span class="font-bold">Weather</span></h2>
+        <p id="sky-line-weather" class="text-xl text-sky-100/90 font-light tracking-wide">Pulling real-time conditions from Open-Meteo…</p>
+    </div>
+    <div class="w-full md:w-72 text-center md:text-left">
+        <label for="city-select" class="text-xs uppercase tracking-widest text-sky-100/70 font-medium">City</label>
+        <select id="city-select" class="glass-select mt-2 w-full rounded-2xl bg-white/10 backdrop-blur-md border border-white/25 text-white px-5 py-3 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            <option value="karachi" selected>Karachi, Pakistan</option>
+            <option value="lahore">Lahore, Pakistan</option>
+            <option value="islamabad">Islamabad, Pakistan</option>
+            <option value="dubai">Dubai, UAE</option>
+            <option value="london">London, UK</option>
+            <option value="newyork">New York, USA</option>
+        </select>
+    </div>
+</header>
+
+<section id="ai-summary-banner" class="hidden mt-6 rounded-[1.5rem] border border-sky-300/30 bg-gradient-to-r from-sky-500/20 to-indigo-500/20 backdrop-blur-xl p-5 md:p-6">
+    <div class="flex items-start gap-4">
+        <span class="w-10 h-10 shrink-0 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-xl shadow-lg">🧠</span>
+        <div>
+            <p class="text-xs uppercase tracking-widest text-sky-100/70 font-semibold mb-1">AI Weather Brief</p>
+            <p id="ai-summary-text" class="text-sky-50 font-light leading-relaxed">Generating hyper-local summary…</p>
+        </div>
+    </div>
+</section>
+
+<section class="glass-card relative overflow-hidden rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] p-10 group">
+    <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+    <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+            <div class="flex flex-wrap items-center gap-3">
+                <h3 id="city-name" class="text-3xl font-medium opacity-90">Karachi, Sindh</h3>
+                <span id="data-source" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-widest border bg-emerald-400/20 border-emerald-300/40 text-emerald-200">LIVE</span>
+            </div>
+            <div id="temp" class="text-9xl font-light mt-4 tracking-tighter leading-none">32°</div>
+            <div class="flex flex-wrap items-center gap-4 mt-4">
+                <p id="condition" class="text-2xl text-sky-100 uppercase tracking-widest">Clear Sky</p>
+                <p class="text-sm text-sky-100/70 font-light">Feels like <span id="feels-like">34°</span></p>
+            </div>
+        </div>
+        <img id="weather-icon" src="{{ url_for('static', filename='icons/sun.svg') }}" alt="Weather condition" class="w-44 h-44 object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
+    </div>
+    <p id="update-time" class="relative z-10 mt-6 text-sm text-sky-100/60 font-light">Open-Meteo · updated just now</p>
+</section>
+
+<section class="mt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-5 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">Humidity</p><p id="humidity" class="text-2xl font-light mt-2">—</p></div>
+    <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-5 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">Wind</p><p id="wind" class="text-2xl font-light mt-2">—</p></div>
+    <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-5 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">UV Index</p><p id="uv" class="text-2xl font-light mt-2">—</p></div>
+    <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-5 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">Pressure</p><p id="pressure" class="text-2xl font-light mt-2">—</p></div>
+    <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-5 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">Visibility</p><p id="visibility" class="text-2xl font-light mt-2">—</p></div>
+    <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-5 text-center"><p class="text-xs uppercase tracking-widest text-sky-100/70">Air Quality</p><p id="aqi" class="text-2xl font-light mt-2">—</p></div>
+</section>
+
+<section class="mt-14">
+    <div class="flex items-end justify-between mb-6">
+        <h3 class="text-3xl md:text-4xl font-light">Hourly <span class="font-bold text-sky-200">Forecast</span></h3>
+        <p class="hidden md:block text-sm text-sky-100/70 font-light">next 24 hours</p>
+    </div>
+    <div id="hourly-grid" class="hourly-scroll flex gap-4 overflow-x-auto pb-4"></div>
+</section>
+
+<section class="mt-14">
+    <div class="flex items-end justify-between mb-6">
+        <h3 class="text-3xl md:text-4xl font-light">7-Day <span class="font-bold text-sky-200">Forecast</span></h3>
+        <p class="hidden md:block text-sm text-sky-100/70 font-light">daily aggregates</p>
+    </div>
+    <div id="forecast-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4"></div>
+</section>
+
+<!-- Air Quality Forecast -->
+<section class="mt-14">
+        <div class="flex items-end justify-between mb-6">
+            <h3 class="text-3xl md:text-4xl font-light">Air Quality <span class="font-bold text-sky-200">Forecast</span></h3>
+            <a href="{{ url_for('insights.aqi_dashboard') }}" class="text-sm text-sky-100/80 hover:text-sky-200 transition-colors">open full AQI dashboard →</a>
+        </div>
+        <div class="glass-card rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center gap-3 mb-4">
+                <div id="aqi-badge" class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold tracking-widest border bg-emerald-400/20 border-emerald-300/40 text-emerald-200">Good</div>
+                <span class="text-sm text-sky-100/70">24-hour PM2.5, O₃, and NO₂ levels</span>
+            </div>
+            <div class="relative h-80">
+                <canvas id="aqi-chart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Historical Comparison -->
+<section class="mt-14">
+    <div class="flex items-end justify-between mb-6">
+        <h3 class="text-3xl md:text-4xl font-light">Historical <span class="font-bold text-sky-200">Comparison</span></h3>
+        <a href="{{ url_for('specialized.historical') }}" class="text-sm text-sky-100/80 hover:text-sky-200 transition-colors">open full chart →</a>
+    </div>
+    <div class="glass-card rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div class="relative h-80">
+            <canvas id="mini-hist-chart"></canvas>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/weather.js') }}"></script>
+<script src="{{ url_for('static', filename='js/historical.js') }}"></script>
+<script>
+  /* AI Weather Brief — 2-sentence hyper-local summary banner */
+  (function () {
+    var banner = document.getElementById("ai-summary-banner");
+    var text = document.getElementById("ai-summary-text");
+    if (!banner || !text) return;
+    function loadSummary() {
+      var sel = document.getElementById("city-select");
+      var city = sel ? sel.value : "karachi";
+      fetch("/api/summary?city=" + encodeURIComponent(city))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.summary) {
+            text.textContent = d.summary;
+            banner.classList.remove("hidden");
+          }
+        })
+        .catch(function () {});
+    }
+    loadSummary();
+    var sel = document.getElementById("city-select");
+    if (sel) sel.addEventListener("change", loadSummary);
+    setInterval(loadSummary, 120000);
+  })();
+</script>
+{% endblock %}

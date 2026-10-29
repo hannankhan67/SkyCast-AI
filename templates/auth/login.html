@@ -1,0 +1,78 @@
+{% extends 'auth/layout.html' %}
+
+{% block title %}SkyCast — Log in{% endblock %}
+
+{% block form %}
+<div class="glass-card rounded-[2rem] border border-white/25 bg-white/10 backdrop-blur-xl shadow-2xl p-8 sm:p-10">
+  <h1 class="text-3xl font-bold tracking-tight">Welcome back</h1>
+  <p class="mt-2 text-sm font-light text-sky-100/80">
+    Log in to reach your personal weather dashboard.
+  </p>
+
+  <form method="POST" action="{{ url_for('auth.login') }}" class="mt-8 space-y-5" novalidate>
+    <input type="hidden" name="next" value="{{ next | default('') }}">
+
+    <div>
+      <label for="email" class="block text-xs font-semibold uppercase tracking-widest text-sky-100/80">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email" required
+             value="{{ form.email | default('') }}"
+             placeholder="you@example.com"
+             class="mt-2 w-full rounded-2xl border border-white/30 bg-white/10 px-4 py-3 text-white placeholder-sky-100/40 outline-none backdrop-blur-md transition focus:border-sky-200/70 focus:bg-white/15 focus:ring-2 focus:ring-sky-200/30">
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between">
+        <label for="password" class="block text-xs font-semibold uppercase tracking-widest text-sky-100/80">Password</label>
+        <a href="{{ url_for('auth.forgot_password') }}" class="text-xs text-sky-200 hover:text-white transition-colors">Forgot password?</a>
+      </div>
+      <div class="relative mt-2">
+        <input id="password" name="password" type="password" autocomplete="current-password" required
+               placeholder="••••••••"
+               class="w-full rounded-2xl border border-white/30 bg-white/10 px-4 py-3 pr-12 text-white placeholder-sky-100/40 outline-none backdrop-blur-md transition focus:border-sky-200/70 focus:bg-white/15 focus:ring-2 focus:ring-sky-200/30">
+        <button type="button" data-toggle-password="password" aria-label="Show password"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-sky-100/60 hover:text-white transition-colors">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <label class="flex items-center gap-3 text-sm font-light text-sky-100/80 cursor-pointer select-none">
+      <input type="checkbox" name="remember" class="w-4 h-4 rounded bg-white/10 border-white/40 text-sky-500 focus:ring-sky-300/40">
+      Keep me logged in for 30 days
+    </label>
+
+    <button type="submit"
+            class="w-full rounded-2xl bg-white/90 px-4 py-3.5 font-semibold text-sky-700 shadow-xl transition hover:bg-white hover:shadow-2xl active:scale-[0.99]">
+      Log in
+    </button>
+  </form>
+
+  <p class="mt-4 text-center text-xs text-sky-100/60 font-light">
+    🛡️ Admin? Use the same form with your admin credentials —
+    you'll land straight on the admin console.
+  </p>
+
+  <p class="mt-6 text-center text-sm font-light text-sky-100/80">
+    New to SkyCast?
+    <a href="{{ url_for('auth.signup') }}" class="font-semibold text-white underline decoration-sky-300/60 underline-offset-4 hover:decoration-white transition">
+      Create an account
+    </a>
+  </p>
+</div>
+
+<p class="mt-6 text-center text-xs text-sky-100/60 font-light">
+  <a href="{{ url_for('index') }}" class="hover:text-sky-100 transition-colors">← Back to homepage</a>
+</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll("[data-toggle-password]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var input = document.getElementById(btn.getAttribute("data-toggle-password"));
+      if (!input) return;
+      input.type = input.type === "password" ? "text" : "password";
+    });
+  });
+</script>
+{% endblock %}

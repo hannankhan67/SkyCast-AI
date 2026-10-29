@@ -1,0 +1,63 @@
+{% extends 'layout.html' %}
+{% block title %}Solar Estimator — SkyCast{% endblock %}
+{% block head %}
+<style>
+  .solar-card { background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Solar <span class="font-bold">Estimator</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Estimate daily solar panel output based on cloud cover and location.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">City</label>
+        <select id="solar-city" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            {% for c in cities %}
+            <option value="{{ c }}">{{ c|title }}</option>
+            {% endfor %}
+        </select>
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">System Size (kW)</label>
+        <input id="solar-size" type="number" value="5" min="1" max="50" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-white/40">
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Panel Efficiency</label>
+        <input id="solar-eff" type="number" value="0.18" step="0.01" min="0.1" max="0.35" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-white/40">
+        <button id="solar-calc" class="btn-brand w-full rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-6 py-3 text-sm font-medium transition-all">Calculate</button>
+    </div>
+    <div class="lg:col-span-2">
+        <div id="solar-result" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="solar-card rounded-2xl bg-white/10 border border-white/15 p-5 text-center">
+                <p class="text-xs uppercase tracking-widest text-sky-100/70">Peak Sun Hrs</p>
+                <p id="s-psh" class="text-3xl font-light mt-2">—</p>
+            </div>
+            <div class="solar-card rounded-2xl bg-white/10 border border-white/15 p-5 text-center">
+                <p class="text-xs uppercase tracking-widest text-sky-100/70">Daily kWh</p>
+                <p id="s-kwh" class="text-3xl font-light mt-2">—</p>
+            </div>
+            <div class="solar-card rounded-2xl bg-white/10 border border-white/15 p-5 text-center">
+                <p class="text-xs uppercase tracking-widest text-sky-100/70">CO₂ Saved</p>
+                <p id="s-co2" class="text-3xl font-light mt-2">—</p>
+            </div>
+            <div class="solar-card rounded-2xl bg-white/10 border border-white/15 p-5 text-center">
+                <p class="text-xs uppercase tracking-widest text-sky-100/70">Cloud Cover</p>
+                <p id="s-cloud" class="text-3xl font-light mt-2">—</p>
+            </div>
+        </div>
+
+        <div class="glass-card mt-4 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-xs uppercase tracking-widest text-sky-100/70 font-medium">Projected Hourly Output</p>
+                <p class="text-xs text-sky-100/60 font-light">peak <span id="s-peak" class="text-sky-200 font-semibold">—</span></p>
+            </div>
+            <div id="s-hourly" class="flex items-end gap-1.5 h-40 overflow-x-auto pb-1"></div>
+            <p class="mt-3 text-xs text-sky-100/60 font-light">Monthly estimate: <span id="s-month" class="text-sky-200">—</span> · annual CO₂ saving: <span id="s-co2y" class="text-sky-200">—</span></p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/solar.js') }}"></script>
+{% endblock %}

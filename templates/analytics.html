@@ -1,0 +1,109 @@
+{% extends 'layout.html' %}
+{% block title %}Climate Analytics Engine — SkyCast{% endblock %}
+
+{% block content %}
+<header class="mb-10 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Climate <span class="font-bold">Analytics Engine</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">How SkyCast turns 1.4 TB of raw climate data into a live forecast.</p>
+</header>
+
+<!-- Copy + terminal -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <div class="glass-card p-8 rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl">
+        <h3 class="text-3xl font-light text-white mb-6">Powered by <span class="font-bold text-sky-200">Big Data</span></h3>
+        <p class="text-sky-100/90 text-lg leading-relaxed mb-6">
+                        SkyCast doesn't just fetch simple APIs. Our architecture utilizes a simulated
+            <strong class="text-white">Hadoop Distributed File System (HDFS)</strong> to ingest and
+            process massive volumes of historical climate data.
+        </p>
+        <p class="text-sky-100/90 text-lg leading-relaxed mb-6">
+            By leveraging MapReduce principles, we aggregate decades of atmospheric pressure and
+            temperature patterns. This data trains our predictive models before syncing securely with
+            our Flask API endpoints.
+        </p>
+        <div class="grid grid-cols-3 gap-4 mt-8">
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-4 py-4 text-center">
+                <p class="text-3xl font-bold text-white">1.4</p><p class="text-xs uppercase tracking-widest text-sky-100/60 mt-1">TB Dataset</p>
+            </div>
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-4 py-4 text-center">
+                <p class="text-3xl font-bold text-white">12</p><p class="text-xs uppercase tracking-widest text-sky-100/60 mt-1">Datanodes</p>
+            </div>
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-4 py-4 text-center">
+                <p class="text-3xl font-bold text-white">3×</p><p class="text-xs uppercase tracking-widest text-sky-100/60 mt-1">Replication</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server terminal -->
+    <div class="relative overflow-hidden rounded-2xl bg-gray-900/80 backdrop-blur-xl border border-gray-700 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] flex flex-col font-mono text-sm md:text-base h-96 transition-transform duration-700 hover:scale-[1.02]">
+        <div class="flex items-center px-4 py-3 bg-gray-900/90 border-b border-gray-700/50">
+            <div class="flex space-x-2">
+                <div class="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
+            </div>
+            <div class="flex-1 text-center text-gray-500 text-xs font-medium tracking-wider">root@skycast-hdfs ~ -bash</div>
+        </div>
+        <div id="terminal-body" class="p-6 flex flex-col space-y-3 overflow-hidden text-gray-300">
+            <div class="animate-log delay-1"><span class="text-gray-500">➜</span> <span class="text-blue-400">~</span> ./start_cluster.sh</div>
+            <div class="animate-log delay-2"><span class="text-yellow-400">[SYSTEM]</span> Initiating Hadoop MapReduce daemon...</div>
+            <div class="animate-log delay-3"><span class="text-cyan-400">[HDFS]</span> Mounting datanodes... syncing historical climate datasets (1.4TB).</div>
+            <div class="animate-log delay-4"><span class="text-purple-400">[ANALYTICS]</span> Batch processing complete. Predictive model optimized.</div>
+            <div class="animate-log delay-5"><span class="text-emerald-400">[FLASK]</span> Endpoints synced. API listening on port 8080...</div>
+            <div id="term-cursor" class="animate-log delay-5 mt-2"><span class="inline-block w-2.5 h-5 bg-gray-400 cursor-blink"></span></div>
+        </div>
+        <div class="absolute bottom-0 w-full h-8 bg-gradient-to-t from-gray-900/80 to-transparent pointer-events-none"></div>
+    </div>
+</section>
+
+<!-- Architecture pipeline -->
+<section class="mt-20">
+    <h3 class="text-3xl md:text-4xl font-light mb-8 text-center md:text-left">End-to-End <span class="font-bold text-sky-200">Pipeline</span></h3>
+    <div class="rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-10 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-6 items-start md:items-center">
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center"><p class="text-2xl">🌍</p><p class="mt-2 font-medium">Data Sources</p><p class="text-xs text-sky-100/70 mt-1">radar · satellites · stations</p></div>
+            <div class="text-center text-3xl text-sky-300 hidden md:block">→</div>
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center"><p class="text-2xl">🗄️</p><p class="mt-2 font-medium">HDFS Ingest</p><p class="text-xs text-sky-100/70 mt-1">1.4 TB · 3× replicated</p></div>
+            <div class="text-center text-3xl text-sky-300 hidden md:block">→</div>
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center"><p class="text-2xl">⚙️</p><p class="mt-2 font-medium">MapReduce</p><p class="text-xs text-sky-100/70 mt-1">batch · 1,482 jobs</p></div>
+            <div class="text-center text-3xl text-sky-300 hidden md:block">→</div>
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center"><p class="text-2xl">🧠</p><p class="mt-2 font-medium">ML Model</p><p class="text-xs text-sky-100/70 mt-1">predictive training</p></div>
+            <div class="text-center text-3xl text-sky-300 hidden md:block">→</div>
+            <div class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center"><p class="text-2xl">🚀</p><p class="mt-2 font-medium">Flask API</p><p class="text-xs text-sky-100/70 mt-1">serves the UI</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- Stages -->
+<section class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="glass-card rounded-[1.5rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7">
+        <p class="text-xs uppercase tracking-widest text-sky-100/60 font-medium">Stage 01</p>
+        <h5 class="text-lg font-medium mt-2 text-sky-200">Ingest</h5>
+        <p class="text-sm text-sky-100/80 font-light mt-2 leading-relaxed">Streaming feeds land on raw HDFS blocks, checksummed and replicated across 12 datanodes.</p>
+    </div>
+    <div class="glass-card rounded-[1.5rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7">
+        <p class="text-xs uppercase tracking-widest text-sky-100/60 font-medium">Stage 02</p>
+        <h5 class="text-lg font-medium mt-2 text-sky-200">Process</h5>
+        <p class="text-sm text-sky-100/80 font-light mt-2 leading-relaxed">MapReduce sweeps decades of pressure, temperature and humidity records into clean hourly aggregates.</p>
+    </div>
+    <div class="glass-card rounded-[1.5rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7">
+        <p class="text-xs uppercase tracking-widest text-sky-100/60 font-medium">Stage 03</p>
+        <h5 class="text-lg font-medium mt-2 text-sky-200">Analyze</h5>
+        <p class="text-sm text-sky-100/80 font-light mt-2 leading-relaxed">The optimized model detects anomalies and produces probabilistic forecasts for every grid cell.</p>
+    </div>
+    <div class="glass-card rounded-[1.5rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7">
+        <p class="text-xs uppercase tracking-widest text-sky-100/60 font-medium">Stage 04</p>
+        <h5 class="text-lg font-medium mt-2 text-sky-200">Serve</h5>
+        <p class="text-sm text-sky-100/80 font-light mt-2 leading-relaxed">Quick-view predictions are cached by Flask and streamed to the glass dashboard in milliseconds.</p>
+    </div>
+</section>
+
+<div class="mt-12 inline-flex items-center space-x-2 bg-white/10 border border-white/20 px-4 py-2 rounded-full text-sm font-medium text-white shadow-inner">
+    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+    <span>Hadoop Cluster: Online · 12/12 datanodes · <a href="{{ url_for('admin.dashboard') }}" class="text-sky-200 hover:underline">open admin console →</a></span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+{% endblock %}

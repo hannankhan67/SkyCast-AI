@@ -1,0 +1,69 @@
+{% extends 'layout.html' %}
+{% block title %}About — SkyCast{% endblock %}
+
+{% block content %}
+<header class="mb-12 text-center text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">About <span class="font-bold">SkyCast</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide max-w-2xl mx-auto">Made for the sky. Powered by data. Built to win.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-10 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <h3 class="text-2xl font-light mb-4">The <span class="font-bold text-sky-200">Mission</span></h3>
+        <p class="text-sky-100/90 text-lg leading-relaxed font-light">
+            Weather is alive — deep, layered and in constant motion. SkyCast mirrors that reality in
+            its UI: a <strong class="text-white">breathing-sky</strong> background, floating parallax
+            clouds, and frosted-glass surfaces that feel like looking at the atmosphere itself.
+        </p>
+        <p class="text-sky-100/90 text-lg leading-relaxed font-light mt-4">
+            Behind the glass sits a simulated <strong class="text-white">Hadoop / HDFS</strong> analytics
+            engine that ingests 1.4 TB of climate history, runs MapReduce batch jobs, and serves the
+            frontend through a Flask API — the bridge between big DATA and beautiful UI.
+        </p>
+    </div>
+
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-10 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <h3 class="text-2xl font-light mb-4">Tech <span class="font-bold text-sky-200">Stack</span></h3>
+        <div class="flex flex-wrap gap-3">
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">Flask 3</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">Python 3.12</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">Tailwind CSS v4</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">Chart.js</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">Hadoop / HDFS</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">MapReduce</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">Open-Meteo API</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">Vanilla JS</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">scikit-learn</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">ReportLab</span>
+            <span class="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium">RainViewer</span>
+        </div>
+        <p class="text-sm text-sky-100/70 font-light leading-relaxed mt-6">
+            Zero frontend frameworks. Zero build step. Pure Tailwind v4 utilities, hand-drawn SVG icons
+            and GPU-friendly CSS animations keep this page blisteringly fast on stage.
+        </p>
+    </div>
+</section>
+
+<section class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-8">
+        <p class="text-4xl font-light">01</p>
+        <h4 class="text-xl font-medium mt-3 text-sky-200">Design First</h4>
+        <p class="text-sky-100/80 font-light mt-2 leading-relaxed">Opacity over grey, editorial font-light typography, and rounded-[2.5rem] aerodynamics at every corner.</p>
+    </div>
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-8">
+        <p class="text-4xl font-light">02</p>
+        <h4 class="text-xl font-medium mt-3 text-sky-200">Data Always</h4>
+        <p class="text-sky-100/80 font-light mt-2 leading-relaxed">Live Open-Meteo feeds with a deterministic offline simulator — the demo never breaks, on or off the network.</p>
+    </div>
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-8">
+        <p class="text-4xl font-light">03</p>
+        <h4 class="text-xl font-medium mt-3 text-sky-200">Enterprise Story</h4>
+        <p class="text-sky-100/80 font-light mt-2 leading-relaxed">A Hadoop/HDFS analytics pipeline, admin console and live terminal prove this is a data platform, not a toy app.</p>
+    </div>
+</section>
+
+<div class="mt-12 flex flex-col md:flex-row items-center justify-center gap-4">
+    <a href="{{ url_for('pages.analytics') }}" class="px-8 py-4 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 font-semibold transition-all shadow-[0_8px_20px_rgba(0,0,0,0.15)]">See the Analytics Engine →</a>
+    <a href="{{ url_for('index') }}" class="px-8 py-4 rounded-full bg-white/5 hover:bg-white/15 border border-white/20 font-medium text-sky-100 transition-all">Back to the Dashboard</a>
+</div>
+{% endblock %}

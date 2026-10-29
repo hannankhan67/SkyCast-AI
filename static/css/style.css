@@ -1,0 +1,309 @@
+/* ================================================================
+   SkyCast AI — Custom stylesheet
+   Breathing sky · floating parallax clouds · terminal cascade
+   radar sweep · scrollbar polish
+   ================================================================ */
+
+/* ---------- 1. The Breathing Sky Background ---------- */
+@keyframes breathing-sky {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.animate-sky {
+    background: linear-gradient(-45deg, #0ea5e9, #38bdf8, #818cf8, #2563eb);
+    background-size: 400% 400%;
+    animation: hue-shift-sky 15s ease infinite;
+}
+
+/* ---------- 2. Floating Parallax Clouds ---------- */
+@keyframes floatCloud {
+    from { transform: translateX(-140vw); } /* fully off-screen left  */
+    to   { transform: translateX(140vw); }  /* fully off-screen right */
+}
+
+.cloud {
+    position: absolute;
+    left: 0;
+    width: 250px;
+    height: 90px;
+    background: #ffffff;
+    border-radius: 90px; /* base rounded rectangle */
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.4); /* subtle outer glow */
+    will-change: transform;
+}
+
+.cloud-shape {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Organic "puffs" built with a single pseudo-element */
+.cloud-shape::after {
+    content: '';
+    position: absolute;
+    top: -60px;     /* puff sits above the base bar */
+    left: 40px;
+    width: 110px;
+    height: 110px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 60px 20px 0 0 #ffffff; /* second puff, layered */
+}
+
+/* Speed variance = atmospheric depth */
+.cloud-slowest { animation: floatCloud 120s linear infinite; } /* 2 min   */
+.cloud-slow    { animation: floatCloud 90s linear infinite; }  /* 90 s    */
+.cloud-medium  { animation: floatCloud 60s linear infinite; }
+.cloud-fast    { animation: floatCloud 45s linear infinite; }
+
+/* ---------- 3. Terminal Log Cascade ---------- */
+@keyframes fade-in-up {
+    0%   { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-log {
+    opacity: 0;
+    animation: fade-in-up 0.5s ease forwards;
+}
+
+/* Cascading delays for the initial five boot lines */
+.delay-1 { animation-delay: 0.5s; }
+.delay-2 { animation-delay: 1.5s; }
+.delay-3 { animation-delay: 2.8s; }
+.delay-4 { animation-delay: 4.0s; }
+.delay-5 { animation-delay: 5.2s; }
+
+/* Lines appended by the JS "live tail" */
+.log-live {
+    animation: fade-in-up 0.5s ease forwards;
+}
+
+/* ---------- 4. Radar Sweep ---------- */
+@keyframes radar-sweep {
+    to { transform: rotate(360deg); }
+}
+
+.radar-sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(34, 211, 238, 0.55),
+        rgba(34, 211, 238, 0.08) 55deg,
+        transparent 110deg
+    );
+    animation: radar-sweep 4s linear infinite;
+    transform-origin: 50% 50%;
+}
+
+/* Blinking terminal cursor */
+.cursor-blink {
+    animation: cursor-blink 1.1s step-end infinite;
+}
+@keyframes cursor-blink {
+    50% { opacity: 0; }
+}
+
+/* ---------- 5. Scrollbar polish ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.45); }
+
+/* ---------- 6. Design System: Glass Cards, Fields & Pills ---------- */
+
+/* Unified card (gradient top accent bar + hover lift & glow).
+   Used by Command Center, System Health, Solar, Route, Agriculture, etc. */
+.cmd-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(15, 17, 23, 0.50), rgba(25, 27, 37, 0.40));
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.cmd-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(125, 211, 252, 0.45);
+  box-shadow: 0 18px 50px -12px rgba(56, 189, 248, 0.28), 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+/* Alias: cmd-card = glass-card on pages that only use one vocab */
+.glass-card {
+  position: relative;
+  background-image:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(129, 140, 248, 0.9), rgba(34, 211, 238, 0.9)),
+    linear-gradient(rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.06));
+  background-size: 100% 4px, 100% 100%;
+  background-repeat: no-repeat, no-repeat;
+  background-position: top, center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.glass-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(125, 211, 252, 0.45);
+  box-shadow: 0 18px 50px -12px rgba(56, 189, 248, 0.28), 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+/* Primary brand button (gradient). cmd-btn = legacy btn-brand alias */
+.cmd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  color: #082f49;
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.95), rgba(165, 180, 252, 0.95));
+  border: 1px solid rgba(224, 242, 254, 0.6);
+  box-shadow: 0 10px 30px -8px rgba(56, 189, 248, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.cmd-btn:hover { filter: brightness(1.05); box-shadow: 0 14px 36px -8px rgba(56, 189, 248, 0.6); transform: translateY(-1px); }
+.cmd-btn:active { transform: translateY(0) scale(0.99); }
+.cmd-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.cmd-btn-primary { /* identical visual to .cmd-btn — kept for semantic clarity */ }
+.btn-brand { /* legacy alias */ }
+  position: relative;
+  background-image:
+    linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(129, 140, 248, 0.9), rgba(34, 211, 238, 0.9)),
+    linear-gradient(rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.06));
+  background-size: 100% 4px, 100% 100%;
+  background-repeat: no-repeat, no-repeat;
+  background-position: top, center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.glass-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(125, 211, 252, 0.45);
+  box-shadow: 0 18px 50px -12px rgba(56, 189, 248, 0.28), 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+/* Compact stat tile (little metric boxes) */
+.glass-tile { position: relative; transition: transform 0.15s ease, border-color 0.2s ease, background-color 0.2s ease; }
+.glass-tile:hover { transform: translateY(-2px); border-color: rgba(125, 211, 252, 0.5); }
+
+/* Gradient icon tile used in card headers */
+.icon-tile {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 1rem;
+  font-size: 1.25rem;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(129, 140, 248, 0.25));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 8px rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+/* Status pill / live chip */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(224, 242, 254, 0.75);
+}
+.pill-live { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35); color: #a7f3d0; }
+
+/* Section label above form fields */
+.field-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  color: rgba(224, 242, 254, 0.75);
+}
+
+/* Unified field styling (input / select / textarea) */
+.field {
+  width: 100%;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.field::placeholder { color: rgba(186, 230, 253, 0.4); }
+.field:focus {
+  outline: none;
+  border-color: rgba(125, 211, 252, 0.7);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.22);
+}
+
+/* Custom chevron on native selects (no DOM wrapper needed) */
+.glass-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23bae6fd' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+}
+.glass-select:not([class*="pr-"]) { padding-right: 2.6rem !important; }
+
+/* Every native <select> dropdown list must stay readable on the dark glass
+   theme. Some browsers render the popup with a dark OS theme, which turns the
+   per-select Tailwind `[&>option]:text-slate-900` color invisible; pinning
+   `color-scheme: light` makes the popup always light, and the explicit option
+   colors give dark text on a white list. Applies to all selects + any option
+   injected dynamically (e.g. admin tier toggles) with zero template edits. */
+select {
+  color-scheme: light;
+}
+select option {
+  color: #0f172a; /* slate-900 */
+  background-color: #ffffff;
+}
+select option:disabled {
+  color: #94a3b8; /* slate-400, still readable */
+}
+select option:checked {
+  background-color: #f1f5f9; /* slate-100 highlight */
+}
+
+/* Primary brand button (gradient) */
+.btn-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  color: #082f49;
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.95), rgba(165, 180, 252, 0.95));
+  border: 1px solid rgba(224, 242, 254, 0.6);
+  box-shadow: 0 10px 30px -8px rgba(56, 189, 248, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-brand:hover { filter: brightness(1.05); box-shadow: 0 14px 36px -8px rgba(56, 189, 248, 0.6); transform: translateY(-1px); }
+.btn-brand:active { transform: translateY(0) scale(0.99); }
+.btn-brand:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* ---------- 7. Accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .animate-sky,
+    .cloud,
+    .radar-sweep,
+    .cursor-blink {
+        animation: none !important;
+    }
+}

@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+{% block title %}Admin Console - SkyCast{% endblock %}
+{% block head %}
+<style>
+  .master-panel { background: rgba(15, 23, 42, .62); border: 1px solid rgba(148, 163, 184, .18); backdrop-filter: blur(18px); }
+  .master-link { transition: border-color .2s ease, background-color .2s ease; }
+  .master-link:hover { background: rgba(255, 255, 255, .08); border-color: rgba(125, 211, 252, .45); }
+</style>
+{% endblock %}
+{% block content %}
+<main class="pt-24 md:pt-28 px-4 md:px-8 max-w-7xl mx-auto pb-16">
+  <header class="flex flex-wrap items-end justify-between gap-4 mb-8">
+    <div>
+      <p class="text-xs uppercase tracking-[.25em] text-sky-200/60">Protected operations</p>
+      <h1 class="mt-2 text-4xl md:text-5xl font-light">SkyCast <span class="font-bold">Admin Console</span></h1>
+      <p class="mt-2 text-sky-100/70">Live platform metrics, access control, and operational controls.</p>
+    </div>
+    <div class="flex flex-wrap gap-2 text-sm">
+      <a class="master-link rounded-xl border border-white/15 px-4 py-2 text-sky-100/80" href="{{ url_for('admin.report_page') }}">Generate report</a>
+      <a class="master-link rounded-xl border border-white/15 px-4 py-2 text-sky-100/80" href="{{ url_for('admin.system_page') }}">System Health</a>
+      <a class="master-link rounded-xl border border-sky-300/30 px-4 py-2 text-sky-200" href="{{ url_for('admin_ext.command_center') }}">Command center</a>
+    </div>
+  </header>
+
+  <section id="kpi-container" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+    <div class="master-panel rounded-2xl p-5"><p class="text-xs uppercase tracking-widest text-slate-400">Total users</p><p id="stat-users" class="mt-3 text-3xl font-semibold">--</p></div>
+    <div class="master-panel rounded-2xl p-5"><p class="text-xs uppercase tracking-widest text-slate-400">Active API keys</p><p id="stat-keys" class="mt-3 text-3xl font-semibold text-emerald-300">--</p></div>
+    <div class="master-panel rounded-2xl p-5"><p class="text-xs uppercase tracking-widest text-slate-400">Requests, 24 hours</p><p id="stat-requests" class="mt-3 text-3xl font-semibold text-sky-300">--</p></div>
+    <div class="master-panel rounded-2xl p-5"><p class="text-xs uppercase tracking-widest text-slate-400">Saved alerts</p><p id="stat-alerts" class="mt-3 text-3xl font-semibold text-amber-300">--</p></div>
+  </section>
+
+  <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="master-panel rounded-2xl p-6 xl:col-span-1">
+      <h2 class="text-xl font-semibold">Broadcast alert</h2>
+      <p class="mt-1 text-sm text-slate-400">Publish a global or city-targeted weather warning.</p>
+      <form id="broadcast-form" class="mt-5 space-y-4">
+        <input id="alert-title" required maxlength="80" placeholder="Alert title" class="w-full rounded-xl bg-slate-950/70 border border-white/15 px-3 py-2.5 text-sm">
+        <textarea id="alert-message" required maxlength="280" rows="4" placeholder="Message and safety guidance" class="w-full rounded-xl bg-slate-950/70 border border-white/15 px-3 py-2.5 text-sm"></textarea>
+        <div class="grid grid-cols-2 gap-3">
+          <select id="alert-severity" class="rounded-xl bg-slate-950/70 border border-white/15 px-3 py-2.5 text-sm">
+            <option value="info">Info</option><option value="warning" selected>Warning</option><option value="emergency">Emergency</option>
+          </select>
+          <input id="alert-city" placeholder="All cities" class="rounded-xl bg-slate-950/70 border border-white/15 px-3 py-2.5 text-sm">
+        </div>
+        <button id="broadcast-button" class="w-full rounded-xl bg-sky-500 hover:bg-sky-400 px-4 py-2.5 text-sm font-semibold text-slate-950">Publish announcement</button>
+        <p id="broadcast-status" class="hidden text-sm"></p>
+      </form>
+    </div>
+
+    <div class="master-panel rounded-2xl p-6 xl:col-span-2">
+      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 class="text-xl font-semibold">👥 User &amp; Membership Directory</h2>
+          <p class="mt-1 text-sm text-slate-400">Manage subscription tiers, access levels, and account statuses.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <input id="user-search" type="search" placeholder="Search name or email" class="w-44 rounded-lg bg-slate-950 border border-white/15 px-3 py-2 text-xs">
+          <button id="refresh-users" class="rounded-lg border border-white/15 px-3 py-2 text-xs text-sky-200">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Membership filter tabs (server-side filtered, so paging stays correct) -->
+      <div class="inline-flex flex-wrap items-center gap-1 rounded-xl border border-white/10 bg-slate-950/70 p-1 text-xs font-medium">
+        <button type="button" data-plan="all" class="plan-tab rounded-lg px-3 py-1.5 transition">All Users (<span id="count-all">0</span>)</button>
+        <button type="button" data-plan="premium" class="plan-tab rounded-lg px-3 py-1.5 transition"><span>⭐ Premium</span> (<span id="count-premium">0</span>)</button>
+        <button type="button" data-plan="free" class="plan-tab rounded-lg px-3 py-1.5 transition">Free Tier (<span id="count-free">0</span>)</button>
+      </div>
+
+      <p id="user-status" class="hidden mt-3 text-xs"></p>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="text-xs uppercase tracking-wider text-slate-400 border-b border-white/10">
+            <tr>
+              <th class="py-3 pr-3">User</th>
+              <th class="py-3 pr-3">Subscription plan</th>
+              <th class="py-3 pr-3">System role</th>
+              <th class="py-3 pr-3">Usage</th>
+              <th class="py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="user-table"><tr><td colspan="5" class="py-6 text-center text-slate-500">Loading users...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex items-center justify-between text-xs text-slate-400"><span id="user-count">0 users</span><div class="flex items-center gap-3"><button id="users-prev" class="rounded-lg border border-white/15 px-3 py-1.5 disabled:opacity-40">Previous</button><span id="users-page">Page 1</span><button id="users-next" class="rounded-lg border border-white/15 px-3 py-1.5 disabled:opacity-40">Next</button></div></div>
+    </div>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_console.js') }}"></script>{% endblock %}

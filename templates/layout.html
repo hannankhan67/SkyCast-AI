@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SkyCast — Weather Prediction &amp; Climate Analytics{% endblock %}</title>
+  <meta name="description" content="{% block meta_desc %}SkyCast — weather prediction and climate analytics platform: live forecast, radar maps and a Hadoop/HDFS big-data engine.{% endblock %}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/logo.svg') }}">
+
+  <!-- Tailwind CSS v4 (Play CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+  </style>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  {% block head %}{% endblock %}
+</head>
+
+<body class="animate-sky min-h-screen text-white font-sans antialiased selection:bg-white/30 selection:text-white relative overflow-x-hidden" {% block body_attrs %}{% endblock %} data-user-authenticated="{{ 'true' if current_user else 'false' }}" data-user-plan="{{ user_plan }}" data-is-premium="{{ 'true' if is_premium else 'false' }}" data-premium-paths="{{ premium_page_prefixes | join(',') }}" data-dashboard-url="{{ url_for('pages.dashboard') }}" data-membership-cancelled="{{ 'true' if membership_cancelled else 'false' }}">
+
+  {% include 'partials/clouds.html' %}
+  {% include 'partials/nav.html' %}
+
+  <main class="pt-28 pb-16 px-4 md:px-8 max-w-7xl mx-auto">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include 'partials/footer.html' %}
+
+  <!-- Global severe-weather toast stack (AQI / heatwave / storms) -->
+  <div id="severe-toasts" class="fixed bottom-6 right-6 z-[90] flex flex-col gap-3 w-[22rem] max-w-[90vw]"></div>
+
+  <!-- Glassmorphic toasts + instant Premium route eviction -->
+  <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/brand_updater.js') }}"></script>
+  {% with flashes = get_flashed_messages(with_categories=true) %}
+    {% if flashes %}
+    <script type="application/json" id="flash-bootstrap-data">{{ flashes | tojson | safe }}</script>
+    <script>
+      /* Server flash messages -> SkyToast. Carries the "membership canceled"
+         notice onto the dashboard after a Premium eviction. The payload is
+         bootstrapped through #flash-bootstrap-data so this block stays plain,
+         lintable JavaScript (see js/analyst_dashboard.js for the same pattern). */
+      (function () {
+        var data = document.getElementById("flash-bootstrap-data");
+        if (!data || !window.SkyToast) return;
+        var messages = [];
+        try { messages = JSON.parse(data.textContent || "[]") || []; } catch (err) { messages = []; }
+        var tones = { success: "success", error: "danger", warning: "warning", info: "info", message: "info" };
+        var glyphs = { success: "\u2713", error: "\u2715", warning: "\uD83D\uDD12", info: "\u24D8", message: "\u24D8" };
+        var titles = { success: "Success", error: "Something went wrong", warning: "Notice", info: "Notice", message: "Notice" };
+        messages.forEach(function (pair) {
+          var category = pair[0] || "info";
+          window.SkyToast.show({
+            title: titles[category] || "Notice",
+            message: pair[1],
+            tone: tones[category] || "info",
+            icon: glyphs[category] || "ⓘ"
+          });
+        });
+      })();
+    </script>
+    {% endif %}
+  {% endwith %}
+
+    {% block scripts %}{% endblock %}
+
+  <!-- Real-time alert notifications for authenticated users -->
+  {% if current_user %}
+  <script src="{{ url_for('static', filename='js/alert_notifications.js') }}"></script>
+  <script>window.SKYCAST_VAPID_PUBLIC_KEY = {{ (config.get('VAPID_PUBLIC_KEY') or '') | tojson }};</script>
+  <script src="{{ url_for('static', filename='js/push_client.js') }}"></script>
+  {% endif %}
+
+  <script>
+    /* Poll severe conditions once per 5 minutes; show dismissible toasts. */
+    (function () {
+      var KEY = "skycast-seen-toasts";
+      var stack = document.getElementById("severe-toasts");
+      if (!stack) return;
+      function seen() { try { return JSON.parse(sessionStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
+      function mark(id) { var s = seen(); if (s.indexOf(id) === -1) { s.push(id); sessionStorage.setItem(KEY, JSON.stringify(s.slice(-20))); } }
+      function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : String(t); return d.innerHTML; }
+      function show(b) {
+        var id = b.kind + "|" + b.city;
+        if (seen().indexOf(id) !== -1) return;
+        mark(id);
+        var el = document.createElement("div");
+        el.className = "rounded-2xl border border-rose-300/40 bg-rose-500/25 backdrop-blur-xl shadow-2xl px-5 py-4 text-sm leading-relaxed";
+        el.innerHTML = '<div class="flex items-start gap-3">'
+          + '<span class="text-lg">🚨</span>'
+          + '<div class="flex-1"><p class="font-semibold text-rose-50">' + esc(b.title) + '</p>'
+          + '<p class="text-rose-100/90 font-light mt-1">' + esc(b.message) + '</p></div>'
+          + '<button class="text-rose-100/70 hover:text-white ml-2" aria-label="Dismiss">✕</button></div>';
+        el.querySelector("button").addEventListener("click", function () { el.remove(); });
+        stack.appendChild(el);
+        setTimeout(function () { el.remove(); }, 15000);
+      }
+      function poll() {
+        fetch("/api/banners").then(function (r) { return r.json(); })
+          .then(function (d) { (d.banners || []).forEach(show); })
+          .catch(function () {});
+      }
+      poll();
+      setInterval(poll, 300000);
+    })();
+  </script>
+
+  <!-- Glassmorphic Emergency Toast Container (broadcast siren) -->
+  <div id="emergencyToastContainer"
+       class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-md w-full px-4 pointer-events-none">
+  </div>
+  <script src="{{ url_for('static', filename='js/emergency_broadcast.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/geofence_siren.js') }}"></script>
+</body>
+</html>

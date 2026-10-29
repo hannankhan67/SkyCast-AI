@@ -1,0 +1,293 @@
+{% extends 'layout.html' %}
+{% block title %}My Dashboard — SkyCast{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<header class="mb-10 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Good <span id="greeting-part">Afternoon</span>, <span class="font-bold">{{ current_user['name'].split(' ')[0] if current_user else 'there' }}.</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Your personal aviation-grade weather board.</p>
+    <div class="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4">
+        <a href="{{ url_for('pages.weather') }}" class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center transition-all hover:bg-white/20 hover:-translate-y-0.5"><div class="text-3xl mb-1">🌤️</div><p class="text-sm font-medium">Live Weather</p><p class="text-xs text-sky-100/50 mt-1">Current + 7-day</p></a>
+        <a href="{{ url_for('pages.maps') if is_premium else url_for('pages.pricing') }}" class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center transition-all hover:bg-white/20 hover:-translate-y-0.5"><div class="text-3xl mb-1">📡</div><p class="text-sm font-medium">Radar Maps{% if not is_premium %} <span class="text-xs text-amber-300">🔒</span>{% endif %}</p><p class="text-xs text-sky-100/50 mt-1">{{ 'Precip + wind layers' if is_premium else 'Premium only' }}</p></a>
+        <a href="{{ url_for('pages.analytics') }}" class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center transition-all hover:bg-white/20 hover:-translate-y-0.5"><div class="text-3xl mb-1">📊</div><p class="text-sm font-medium">Analytics</p><p class="text-xs text-sky-100/50 mt-1">HDFS cluster</p></a>
+        <a href="{{ url_for('assistant.assistant_page') }}" class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center transition-all hover:bg-white/20 hover:-translate-y-0.5"><div class="text-3xl mb-1">🤖</div><p class="text-sm font-medium">AI Assistant</p><p class="text-xs text-sky-100/50 mt-1">Outfits & search</p></a>
+        <a href="{{ url_for('alerts.alerts_page') if is_premium else url_for('pages.pricing') }}" class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center transition-all hover:bg-white/20 hover:-translate-y-0.5"><div class="text-3xl mb-1">🔔</div><p class="text-sm font-medium">Smart Alerts{% if not is_premium %} <span class="text-xs text-amber-300">🔒</span>{% endif %}</p><p class="text-xs text-sky-100/50 mt-1">{{ 'Custom thresholds' if is_premium else 'Premium only' }}</p></a>
+        <a href="{{ url_for('disaster.disaster_page') if is_premium else url_for('pages.pricing') }}" class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center transition-all hover:bg-white/20 hover:-translate-y-0.5"><div class="text-3xl mb-1">🚨</div><p class="text-sm font-medium">Disaster Response{% if not is_premium %} <span class="text-xs text-amber-300">🔒</span>{% endif %}</p><p class="text-xs text-sky-100/50 mt-1">{{ 'Shelters & helplines' if is_premium else 'Premium only' }}</p></a>
+        <a href="{{ url_for('pages.about') }}" class="glass-tile rounded-2xl bg-white/10 border border-white/20 p-5 text-center transition-all hover:bg-white/20 hover:-translate-y-0.5"><div class="text-3xl mb-1">ⓘ</div><p class="text-sm font-medium">About</p><p class="text-xs text-sky-100/50 mt-1">Tech stack</p></a>
+    </div>
+</header>
+
+{% if current_user and current_user.get('role') in ('analyst', 'admin') and telemetry %}
+<section class="mb-10">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h3 class="text-2xl font-light">System <span class="font-bold text-sky-200">Telemetry</span></h3>
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 shadow-sm shadow-emerald-500/10" id="telemetryBadge">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span class="text-xs font-semibold text-emerald-300 tracking-wide uppercase">Live Telemetry</span>
+        </span>
+        <span class="text-xs text-sky-100/70 font-light" id="telemetrySource">analyst view · live from SQLite · updated {{ telemetry.generated_at }}</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 px-5 py-4">
+            <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-widest text-sky-100/80">Total Requests (24h)</p>
+                <span id="livePulse" class="h-[9px] w-[9px] rounded-full bg-teal-400 opacity-0 transition-opacity duration-300"></span>
+            </div>
+            <p id="kpiTotalRequests" class="mt-2 text-3xl font-light leading-none">{{ "{:,}".format(telemetry.total_requests) }}</p>
+        </div>
+        <div class="glass-card rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 px-5 py-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-sky-100/80">Average Latency</p>
+            <p id="kpiAvgLatency" class="mt-2 text-3xl font-light leading-none text-teal-300">{{ telemetry.avg_latency }} <span class="text-base font-light">ms</span></p>
+        </div>
+        <div class="glass-card rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 px-5 py-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-sky-100/80">Active API Keys</p>
+            <p id="kpiActiveKeys" class="mt-2 text-3xl font-light leading-none text-cyan-300">{{ telemetry.active_keys }}</p>
+        </div>
+        <div class="glass-card rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 px-5 py-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-sky-100/80">API Success Rate (24h)</p>
+            <p id="kpiSuccessRate" class="mt-2 text-3xl font-light leading-none text-emerald-300">{{ telemetry.success_rate }}<span class="text-base font-light">%</span></p>
+        </div>
+    </div>
+
+    <div class="mt-6 rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h4 class="text-xl font-light">API Telemetry <span class="font-bold text-sky-200">&amp; Response Latency</span></h4>
+            <span class="text-xs text-sky-100/70 font-light">last 24 hours · live</span>
+        </div>
+        <div class="relative h-80"><canvas id="api-telemetry-chart"></canvas></div>
+        <div class="mt-4 flex flex-wrap items-end gap-2">
+            <input id="annotation-label" maxlength="140" placeholder="Pin an incident… (e.g. Deployed v1.4 patch)"
+                   class="flex-1 min-w-[220px] rounded-xl bg-white/10 border border-white/25 text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900" />
+            <input id="annotation-ts" type="datetime-local"
+                   class="rounded-xl bg-white/10 border border-white/25 text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/40" />
+            <button id="annotation-add" class="rounded-lg bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/40 text-teal-200 px-3 py-2 text-xs font-medium transition-all active:scale-95">+ Pin</button>
+        </div>
+        <div id="annotation-list" class="mt-3 flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- Analyst Toolkit: heatmap · accuracy · simulator · hadoop · export · audit -->
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Endpoint Latency & Error Heatmap -->
+        <div class="rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-light">Endpoint <span class="font-bold text-sky-200">Heatmap</span> <span class="text-xs text-sky-100/50 font-light">24h</span></h4>
+                <span class="text-[10px] font-mono text-sky-100/50">teal &lt;50ms · amber 50-200 · red &gt;200/5xx</span>
+            </div>
+            <div id="heatmap-grid" class="space-y-1.5 text-xs">
+                <p class="text-sky-100/50 font-light">Loading heatmap…</p>
+            </div>
+        </div>
+
+        <!-- Model Drift & Accuracy -->
+        <div class="rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-light">Forecast <span class="font-bold text-sky-200">Accuracy</span> <span class="text-xs text-sky-100/50 font-light">MAE / RMSE · 7d</span></h4>
+                <button id="accuracy-refresh" class="text-xs text-teal-300 hover:text-teal-200 transition-colors">refresh ↻</button>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="rounded-xl bg-white/5 border border-white/15 px-4 py-3">
+                    <p class="text-[10px] uppercase tracking-widest text-sky-100/60">MAE</p>
+                    <p id="mae-value" class="mt-1 text-2xl font-light text-teal-300">—</p>
+                </div>
+                <div class="rounded-xl bg-white/5 border border-white/15 px-4 py-3">
+                    <p class="text-[10px] uppercase tracking-widest text-sky-100/60">RMSE</p>
+                    <p id="rmse-value" class="mt-1 text-2xl font-light text-cyan-300">—</p>
+                </div>
+            </div>
+            <div id="accuracy-cities" class="space-y-1.5 text-xs text-sky-100/70"></div>
+            <div class="mt-4 flex items-end gap-2">
+                <input id="fv-city" placeholder="city (e.g. karachi)" class="flex-1 rounded-lg bg-white/10 border border-white/25 text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/40" />
+                <input id="fv-pred" type="number" step="0.1" placeholder="pred °C" class="w-24 rounded-lg bg-white/10 border border-white/25 text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/40" />
+                <input id="fv-actual" type="number" step="0.1" placeholder="actual °C" class="w-24 rounded-lg bg-white/10 border border-white/25 text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/40" />
+                <button id="fv-add" class="rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 px-3 py-2 text-xs font-medium transition-all active:scale-95">+ Verify</button>
+            </div>
+        </div>
+        <!-- Extreme Alert Simulator + Hadoop Job Runner -->
+        <div class="rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-6">
+            <h4 class="text-lg font-light mb-4">Extreme Event <span class="font-bold text-sky-200">Simulator</span> <span class="text-xs text-sky-100/50 font-light">dry-run · never fires real alerts</span></h4>
+            <div class="flex items-end gap-2 mb-3">
+                <input id="sim-city" placeholder="city" value="karachi" class="flex-1 rounded-lg bg-white/10 border border-white/25 text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/40" />
+                <select id="sim-metric" class="rounded-lg bg-white/10 border border-white/25 text-white px-2 py-2 text-xs [&>option]:text-slate-900">
+                    <option value="temp_c">Heatwave (°C)</option>
+                    <option value="aqi">Hazardous AQI</option>
+                </select>
+                <input id="sim-threshold" type="number" placeholder="45" class="w-20 rounded-lg bg-white/10 border border-white/25 text-white px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/40" />
+                <button id="sim-run" class="rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 px-3 py-2 text-xs font-medium transition-all active:scale-95">Stress test</button>
+            </div>
+            <pre id="sim-result" class="hidden text-[11px] font-mono text-sky-100/80 rounded-xl bg-slate-900/60 border border-white/10 p-3 overflow-x-auto"></pre>
+
+            <h4 class="text-lg font-light mt-6 mb-3">Hadoop <span class="font-bold text-sky-200">Job Runner</span></h4>
+            <div class="flex items-center gap-2 mb-3">
+                <select id="hadoop-type" class="rounded-lg bg-white/10 border border-white/25 text-white px-2 py-2 text-xs [&>option]:text-slate-900">
+                    <option value="daily_summary">daily_summary</option>
+                    <option value="aqi_averages">aqi_averages</option>
+                    <option value="extreme_events">extreme_events</option>
+                </select>
+                <button id="hadoop-run" class="rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 px-3 py-2 text-xs font-medium transition-all active:scale-95">Submit job</button>
+            </div>
+            <div id="hadoop-status" class="hidden rounded-xl bg-slate-900/60 border border-white/10 p-3 text-xs">
+                <p class="font-mono text-sky-100/80" id="hadoop-id"></p>
+                <div class="mt-2 h-2 rounded-full bg-white/10 overflow-hidden"><div id="hadoop-map-bar" class="h-full w-0 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 transition-all"></div></div>
+                <p class="mt-1 text-[10px] font-mono text-sky-100/50">Map <span id="hadoop-map">0</span>% · Reduce <span id="hadoop-reduce">0</span>% · <span id="hadoop-state">QUEUED</span></p>
+            </div>
+        </div>
+
+        <!-- Export + Audit Log -->
+        <div class="rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-6">
+            <h4 class="text-lg font-light mb-3">Climate <span class="font-bold text-sky-200">Data Export</span></h4>
+            <div class="flex items-center gap-2 mb-5">
+                <select id="export-range" class="rounded-lg bg-white/10 border border-white/25 text-white px-2 py-2 text-xs [&>option]:text-slate-900">
+                    <option value="24">24h</option>
+                    <option value="168" selected>7d</option>
+                    <option value="720">30d</option>
+                </select>
+                <a id="export-json" href="/api/telemetry/export?format=json" class="rounded-lg bg-white/10 hover:bg-white/20 border border-white/25 text-white px-3 py-2 text-xs transition-all">JSON</a>
+                <button id="export-csv" class="rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 px-3 py-2 text-xs font-medium transition-all active:scale-95">CSV</button>
+            </div>
+
+            <h4 class="text-lg font-light mb-3">Audit <span class="font-bold text-sky-200">Log</span></h4>
+            <div id="audit-list" class="space-y-1.5 text-xs text-sky-100/70 max-h-40 overflow-y-auto">
+                <p class="text-sky-100/40 font-light">Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Glassmorphic Simulation Audit History (dry-run test executions) -->
+    <div class="mt-6 overflow-hidden border bg-slate-900/60 backdrop-blur-xl border-white/10 rounded-2xl shadow-xl shadow-slate-950/40">
+
+        <!-- Table Header Bar -->
+        <div class="flex items-center justify-between p-5 border-b border-white/10 bg-white/5">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold tracking-wide text-white">Simulation Audit Logs</h4>
+                    <p class="text-xs text-slate-400">Real-time trace of recent weather rule engine dry-runs</p>
+                </div>
+            </div>
+
+            <!-- Refresh & Auto-Sync Controls -->
+            <div class="flex items-center gap-3">
+                <span class="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Live Poll
+                </span>
+                <button
+                    onclick="loadSimulationHistory()"
+                    title="Manual Refresh"
+                    class="p-2 text-slate-400 transition-colors border rounded-lg hover:text-white bg-slate-950/40 border-white/10 hover:bg-white/10">
+                    <svg id="historySyncIcon" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Body -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead class="uppercase tracking-wider font-semibold text-slate-400 bg-slate-950/50 border-b border-white/5">
+                    <tr>
+                        <th class="px-5 py-3.5">Region</th>
+                        <th class="px-5 py-3.5">Tested Parameters</th>
+                        <th class="px-5 py-3.5 text-center">Triggers</th>
+                        <th class="px-5 py-3.5">Highest Severity</th>
+                        <th class="px-5 py-3.5">Latency</th>
+                        <th class="px-5 py-3.5 text-right">Executed At</th>
+                    </tr>
+                </thead>
+                <tbody id="simulationHistoryBody" class="divide-y divide-white/5 text-slate-300 font-sans">
+                    <!-- Rows populated dynamically by audit_updater.js -->
+                    <tr>
+                        <td colspan="6" class="px-5 py-8 text-center text-slate-500 font-mono">
+                            Loading simulation audit logs...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-light">Saved <span class="font-bold text-sky-200">Cities</span></h3>
+            <a href="{{ url_for('pages.weather') }}" class="text-sm text-sky-100/80 hover:text-sky-200 transition-colors">explore all →</a>
+        </div>
+        <div id="city-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="rounded-[2rem] bg-white/5 border border-white/10 p-8 flex items-center justify-center text-sky-100/60 text-sm">Loading your saved cities…</div>
+        </div>
+    </div>
+    <aside class="flex flex-col gap-6">
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-xl font-light">Manage <span class="font-bold text-sky-200">Cities</span></h4>
+                <span id="saved-count" class="text-xs text-sky-100/60 font-light">0 saved</span>
+            </div>
+
+            <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Country</label>
+            <select id="city-country" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-4 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+                <option value="">Loading countries…</option>
+            </select>
+
+            <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">City</label>
+            <select id="city-picker" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-4 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+                <option value="">Select a country first</option>
+            </select>
+
+            <button id="city-add" class="w-full rounded-full bg-white/90 text-sky-700 font-semibold hover:bg-white px-5 py-3 text-sm transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">+ Add City</button>
+            <p id="add-status" class="mt-3 text-xs text-emerald-300 font-medium hidden"></p>
+
+            <div class="mt-6 border-t border-white/15 pt-5">
+                <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-3">Your list</label>
+                <div id="saved-list" class="flex flex-col gap-2"></div>
+            </div>
+        </div>
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <h4 class="text-xl font-light mb-4">Recent <span class="font-bold text-sky-200">Alerts</span></h4>
+            <div class="flex flex-col gap-4 text-sm">
+                <div class="flex items-start space-x-3"><span class="w-2 h-2 rounded-full bg-amber-300 mt-1.5 shrink-0"></span><p class="text-sky-100/85 font-light">UV spike (9+) expected 12:00–15:00 in Karachi — use high-SPF.</p></div>
+                <div class="flex items-start space-x-3"><span class="w-2 h-2 rounded-full bg-cyan-300 mt-1.5 shrink-0"></span><p class="text-sky-100/85 font-light">Light rain band approaching the coast after 18:00 tonight.</p></div>
+                <div class="flex items-start space-x-3"><span class="w-2 h-2 rounded-full bg-emerald-300 mt-1.5 shrink-0"></span><p class="text-sky-100/85 font-light">Wind comfort index: excellent for outdoor sport in Islamabad.</p></div>
+            </div>
+        </div>
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <h4 class="text-xl font-light mb-4">Cluster <span class="font-bold text-sky-200">Health</span></h4>
+            <div class="flex flex-col gap-3 text-sm">
+                <div class="flex justify-between items-center"><span class="text-sky-100/80 font-light">Datanodes</span><span class="font-semibold text-emerald-300">12 / 12</span></div>
+                <div class="flex justify-between items-center"><span class="text-sky-100/80 font-light">HDFS Used</span><span class="font-semibold">1.13 / 1.4 TB</span></div>
+                <div class="flex justify-between items-center"><span class="text-sky-100/80 font-light">MapReduce Jobs</span><span class="font-semibold">1,482</span></div>
+                <div class="mt-2 h-2 rounded-full bg-white/10 overflow-hidden"><div class="h-full w-[81%] rounded-full bg-gradient-to-r from-sky-400 to-indigo-400"></div></div>
+                <p class="text-xs text-sky-100/50 font-light">81% cluster capacity utilised</p>
+            </div>
+        </div>
+        <a href="{{ url_for('pages.maps') if is_premium else url_for('pages.pricing') }}" class="rounded-[2rem] p-7 block bg-gradient-to-br from-sky-500/25 to-indigo-500/25 backdrop-blur-lg border border-white/25 hover:border-sky-300/50 transition-all group">
+            <div class="flex items-center justify-between"><h4 class="text-xl font-light">Open <span class="font-bold text-sky-200">Radar</span>{% if not is_premium %} <span class="text-xs text-amber-300">🔒</span>{% endif %}</h4><span class="text-sky-200 group-hover:translate-x-1 transition-transform">→</span></div>
+            <p class="text-sm text-sky-100/80 font-light mt-2">{{ 'Jump to the live reflectivity map for your region.' if is_premium else 'Upgrade to Premium to unlock Radar telemetry.' }}</p>
+        </a>
+    </aside>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% if current_user and current_user.get('role') in ('analyst', 'admin') and telemetry %}
+<script src="{{ url_for('static', filename='js/analyst_toolkit.js') }}"></script>
+<script src="{{ url_for('static', filename='js/analyst_dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/audit_updater.js') }}"></script>
+<script type="application/json" id="telemetry-bootstrap-data">{{ telemetry | tojson | safe }}</script>
+{% endif %}
+{% endblock %}

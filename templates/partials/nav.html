@@ -1,0 +1,190 @@
+{% set nav_flat = [
+    ('pages.weather', 'weather', 'Live Weather', false),
+    ('pages.maps', 'maps', 'Radar', false),
+    ('pages.about', 'about', 'About', false),
+    ('pages.dashboard', 'dashboard', 'Dashboard', true),
+] %}
+{% set nav_dropdowns = [
+    ('Explore', true, false, [
+        ('pages.health_page', 'health', 'Health Index'),
+        ('pages.planner_page', 'planner', 'Event Planner'),
+        ('specialized.route', 'route', 'Smart Commute'),
+    ]),
+    ('Specialized', true, true, [
+        ('specialized.solar', 'solar', 'Solar ROI'),
+        ('specialized.agriculture', 'agriculture', 'Agri-Climate'),
+        ('specialized.historical', 'historical', 'Historical Data'),
+    ]),
+    ('Insights', true, true, [
+        ('assistant.assistant_page', 'assistant', 'AI Assistant'),
+        ('predictions.predictions_page', 'predictions', 'AI Predictions'),
+        ('alerts.alerts_page', 'alerts', 'Active Alerts'),
+        ('disaster.disaster_page', 'disaster', 'Disaster Safety'),
+    ]),
+] %}
+{% set nav_center_order = [
+    ('link', 'weather'),
+    ('link', 'maps'),
+    ('dropdown', 'Explore'),
+    ('dropdown', 'Specialized'),
+    ('dropdown', 'Insights'),
+    ('link', 'dashboard'),
+    ('link', 'about'),
+] %}
+<nav class="fixed top-0 w-full z-50 bg-slate-950/35 backdrop-blur-md border-b border-white/20" aria-label="Primary navigation">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center gap-4">
+
+        <!-- LEFT: Brand -->
+        <a href="{{ url_for('index') }}" id="siteBrand" class="flex items-center gap-2.5 shrink-0 min-w-0" aria-label="SkyCast home">
+            <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="SkyCast" class="w-9 h-9 drop-shadow-lg">
+            <h1 class="text-xl sm:text-2xl font-bold tracking-wider">
+                <span class="text-white">SkyCast</span>
+            </h1>
+            {% if is_premium %}
+            <span id="premium-brand-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold tracking-widest uppercase whitespace-nowrap bg-amber-500/10 text-amber-300 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                <span aria-hidden="true">⭐</span> PREMIUM
+            </span>
+            {% endif %}
+        </a>
+
+        <!-- CENTER + RIGHT: Unified nav row -->
+        {% set current = active | default('home') %}
+        <div class="hidden md:flex flex-1 min-w-0 items-center justify-center gap-0.5 text-xs lg:text-[13px] font-medium">
+            {% for kind, key in nav_center_order %}
+                {% if kind == 'link' %}
+                    {% for ep, lk, label, auth in nav_flat if lk == key %}
+                        {# Radar & About: public — always visible, no gating #}
+                        {% if not auth or current_user %}
+                            {% if lk == 'dashboard' %}
+                    <a href="{{ url_for(ep) }}" class="px-2 lg:px-3 py-2 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] whitespace-nowrap">{{ label }}</a>
+                            {% else %}
+                    <a href="{{ url_for(ep) }}" class="px-2 lg:px-3 py-2 {{ 'text-sky-200 font-semibold' if current == lk else 'hover:text-sky-200' }} transition-colors whitespace-nowrap">{{ label }}</a>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% elif kind == 'dropdown' %}
+                    {% for title, auth, premium_only, items in nav_dropdowns if title == key %}
+                        {% if (not auth or current_user) and (not premium_only or is_premium) %}
+                <div class="relative group"{% if premium_only %} data-premium-group="{{ title }}"{% endif %}>
+                    <button type="button" class="flex items-center gap-1 px-2 lg:px-3 py-2 hover:text-sky-200 transition-colors whitespace-nowrap" aria-haspopup="true">
+                        <span>{{ title }}</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+                        <div class="min-w-[11rem] rounded-xl bg-slate-900/90 backdrop-blur-xl border border-white/15 shadow-xl py-2 flex flex-col">
+                            {% for ep, dk, label in items %}
+                            <a href="{{ url_for(ep) }}"
+                               class="px-4 py-2 text-sm transition-colors {{ 'text-sky-200 font-semibold bg-white/5' if current == dk else 'text-white/80 hover:bg-white/10 hover:text-sky-200' }}">{{ label }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                        {% endfor %}
+
+            <!-- Right-side: Support (logged-in users only) -->
+            {% if current_user %}
+                     <a href="{{ url_for('support.support_page') }}"
+                         class="px-2 lg:px-3 py-2 {{ 'text-sky-200 font-semibold' if current == 'support' else 'hover:text-sky-200' }} transition-colors whitespace-nowrap">
+                    Support
+                </a>
+            {% endif %}
+
+            <!-- Right-side controls (tight after About) -->
+            {% if current_user %}
+                     <a href="{{ url_for('pages.settings') }}"
+                         class="px-2 lg:px-3 py-2 hover:text-sky-200 transition-colors whitespace-nowrap">Settings</a>
+                <a href="{{ url_for('pages.dashboard') }}"
+                   class="flex items-center gap-1.5 px-2 py-1 rounded-full border border-white/30 bg-white/10 hover:bg-white/15 transition-all whitespace-nowrap">
+                    <span class="w-5 h-5 rounded-full bg-sky-400 text-sky-900 font-bold flex items-center justify-center text-[10px]">{{ current_user['name'].split(' ')[0][0] | upper }}</span>
+                    <span>{{ current_user['name'].split(' ')[0] }}</span>
+                </a>
+                <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
+                    <button type="submit"
+                            class="px-3 py-1 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all">
+                        Logout
+                    </button>
+                </form>
+            {% elif session.get('is_admin') %}
+                <a href="{{ url_for('pages.settings') }}"
+                   class="px-3 py-2 hover:text-sky-200 transition-colors">Settings</a>
+                <a href="{{ url_for('admin.dashboard') }}"
+                   class="px-3 py-1 rounded-full border border-amber-200/40 bg-amber-300/10 text-amber-100 hover:bg-amber-300/20 transition-all">
+                    Admin
+                </a>
+                <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
+                    <button type="submit"
+                            class="px-3 py-1 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all">
+                        Logout
+                    </button>
+                </form>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}"
+                   class="px-3 py-1 rounded-full border border-white/30 hover:bg-white/10 transition-all">Log in</a>
+                <a href="{{ url_for('auth.signup') }}"
+                   class="px-3 py-1 rounded-full bg-white/90 text-sky-700 font-semibold hover:bg-white transition-all">Sign up</a>
+            {% endif %}
+        </div>
+
+        <!-- Mobile menu button -->
+        <button id="nav-menu-btn" class="md:hidden w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center shrink-0" aria-label="Toggle menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+    </div>
+
+    <!-- Mobile dropdown -->
+    <div id="nav-mobile-menu" class="hidden md:hidden bg-white/10 backdrop-blur-xl border-b border-white/20 px-6 py-5 flex flex-col gap-3 text-sm font-medium">
+        {% for ep, key, label, auth in nav_flat if not auth and key != 'maps' %}
+            <a href="{{ url_for(ep) }}" class="{{ 'text-sky-200' if current == key else 'text-white/80' }} hover:text-sky-200 transition-colors">{{ label }}</a>
+        {% endfor %}
+        {% for title, auth, premium_only, items in nav_dropdowns %}
+            {% if (not auth or current_user) and (not premium_only or is_premium) %}
+            <div class="flex flex-col gap-3"{% if premium_only %} data-premium-group="{{ title }}"{% endif %}>
+            <div class="text-white/50 text-xs uppercase tracking-wider pt-2">{{ title }}</div>
+            {% for ep, key, label in items %}
+            <a href="{{ url_for(ep) }}" class="pl-3 {{ 'text-sky-200' if current == key else 'text-white/80' }} hover:text-sky-200 transition-colors">{{ label }}</a>
+            {% endfor %}
+            </div>
+            {% endif %}
+        {% endfor %}
+        {% for ep, key, label, auth in nav_flat if auth and current_user %}
+            <a href="{{ url_for(ep) }}" class="{{ 'text-sky-200' if current == key else 'text-white/80' }} hover:text-sky-200 transition-colors">{{ label }}</a>
+        {% endfor %}
+        {# Radar (mobile): always visible — public page #}
+        <a href="{{ url_for('pages.maps') }}" class="{{ 'text-sky-200' if current == 'maps' else 'text-white/80' }} hover:text-sky-200 transition-colors">Radar</a>
+
+        {# Support (mobile): visible to logged-in users only #}
+        {% if current_user %}
+        <a href="{{ url_for('support.support_page') }}" class="{{ 'text-sky-200' if current == 'support' else 'text-white/80' }} hover:text-sky-200 transition-colors">Support</a>
+        {% endif %}
+        <div class="pt-3 mt-1 border-t border-white/20 flex flex-col gap-3">
+            {% if current_user %}
+                <a href="{{ url_for('pages.settings') }}" class="text-white/80 hover:text-sky-200">Settings</a>
+                <span class="text-white/80">Signed in as <span class="font-semibold text-white">{{ current_user['name'] }}</span></span>
+                <form method="POST" action="{{ url_for('auth.logout') }}">
+                    <button type="submit" class="w-full px-4 py-2.5 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all text-left">Logout</button>
+                </form>
+            {% elif session.get('is_admin') %}
+                <a href="{{ url_for('pages.settings') }}" class="text-white/80 hover:text-sky-200">Settings</a>
+                <a href="{{ url_for('admin.dashboard') }}" class="px-4 py-2.5 rounded-full border border-amber-200/40 bg-amber-300/10 text-amber-100 hover:bg-amber-300/20 transition-all text-left">🛡️ Admin Console</a>
+                <form method="POST" action="{{ url_for('auth.logout') }}">
+                    <button type="submit" class="w-full px-4 py-2.5 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all text-left">Logout</button>
+                </form>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="px-4 py-2.5 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all text-center">Log in</a>
+                <a href="{{ url_for('auth.signup') }}" class="px-4 py-2.5 rounded-full bg-white/90 text-sky-700 font-semibold hover:bg-white transition-all text-center">Sign up</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+<script>
+  (function () {
+    var btn = document.getElementById("nav-menu-btn");
+    var menu = document.getElementById("nav-mobile-menu");
+    if (btn && menu) {
+      btn.addEventListener("click", function () { menu.classList.toggle("hidden"); });
+    }
+  })();
+</script>

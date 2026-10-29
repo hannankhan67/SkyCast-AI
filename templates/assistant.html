@@ -1,0 +1,98 @@
+{% extends 'layout.html' %}
+{% block title %}SkyCast Assistant — Weather Intelligence{% endblock %}
+{% block head %}
+<style>
+  .chat-bubble-user { background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); }
+  .chat-bubble-ai { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">AI <span class="font-bold">Assistant</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Ask about outfits, activities, rain probability, or search any city.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div id="chat-history" class="flex flex-col gap-4 h-[420px] overflow-y-auto pr-2 mb-4">
+            <div class="chat-bubble-ai rounded-2xl p-4 text-sm text-sky-100/90 max-w-[85%]">
+                <p class="font-semibold text-sky-200 mb-1">SkyCast</p>
+                <p>Hi! Try asking:</p>
+                <ul class="list-disc list-inside mt-2 text-sky-100/80 space-y-1">
+                    <li>"What should I wear in Karachi tomorrow?"</li>
+                    <li>"Will it rain in Lahore today?"</li>
+                    <li>"Best day for cricket in Islamabad this week"</li>
+                </ul>
+            </div>
+        </div>
+        <form id="assistant-form" class="flex gap-3">
+            <input id="assistant-input" type="text" placeholder="Ask about weather, outfits, activities..." class="flex-1 rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/40" autocomplete="off">
+            <button type="submit" class="btn-brand rounded-2xl bg-white/20 hover:bg-white/30 border border-white/30 px-5 py-2.5 text-sm font-medium transition-all">Send</button>
+        </form>
+    </div>
+    <aside class="flex flex-col gap-6">
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <h4 class="text-xl font-light mb-3">Popular <span class="font-bold text-sky-200">Queries</span></h4>
+            <div class="flex flex-col gap-2 text-sm">
+                <button onclick="fillQuery('Will it rain in Karachi tomorrow?')" class="text-left px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors">Will it rain in Karachi tomorrow?</button>
+                <button onclick="fillQuery('Best day for outdoor cricket in Lahore this week')" class="text-left px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors">Best day for outdoor cricket in Lahore</button>
+                <button onclick="fillQuery('What should I wear in Islamabad?')" class="text-left px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors">What should I wear in Islamabad?</button>
+                <button onclick="fillQuery('UV index in Dubai today')" class="text-left px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors">UV index in Dubai today</button>
+            </div>
+        </div>
+        {% if guest %}
+        <div class="rounded-[2rem] bg-amber-400/10 border border-amber-300/30 p-6 text-sm text-amber-100">
+            <p class="font-semibold mb-1">Guest Mode</p>
+            <p>Sign in to save your alerts and preferences.</p>
+            <a href="{{ url_for('auth.login') }}" class="inline-block mt-3 px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 transition-all">Log in</a>
+        </div>
+        {% endif %}
+    </aside>
+</section>
+
+<section class="mt-10 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+    <div class="flex flex-col md:flex-row md:items-end gap-4 md:gap-6 mb-6">
+        <div>
+            <h3 class="text-2xl font-light">Trip <span class="font-bold text-sky-200">Packing</span> Generator</h3>
+            <p class="text-sm text-sky-100/80 mt-1">A personalized packing list from hourly rain probability, wind chill and UV exposure for your trip type.</p>
+        </div>
+        <div class="flex flex-wrap items-end gap-3">
+            <label class="text-xs uppercase tracking-wider text-sky-100/70">City
+                <select id="pack-city" class="glass-select block mt-1 rounded-xl bg-white/10 border border-white/25 text-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
+                    {% for c in cities %}<option value="{{ c }}">{{ c.title() }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="text-xs uppercase tracking-wider text-sky-100/70">Day
+                <select id="pack-day" class="glass-select block mt-1 rounded-xl bg-white/10 border border-white/25 text-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
+                    <option value="0">Today</option><option value="1">Tomorrow</option>
+                    <option value="2">In 2 days</option><option value="3">In 3 days</option>
+                    <option value="4">In 4 days</option><option value="5">In 5 days</option><option value="6">In 6 days</option>
+                </select>
+            </label>
+            <label class="text-xs uppercase tracking-wider text-sky-100/70">Trip
+                <select id="pack-trip" class="glass-select block mt-1 rounded-xl bg-white/10 border border-white/25 text-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/40">
+                    <option value="general">General</option><option value="travel">Travel</option>
+                    <option value="outdoor">Outdoor</option><option value="sports">Sports</option><option value="beach">Beach</option>
+                </select>
+            </label>
+            <button id="pack-btn" class="btn-brand rounded-2xl bg-white/20 hover:bg-white/30 border border-white/30 px-5 py-2.5 text-sm font-medium transition-all">Generate list</button>
+        </div>
+    </div>
+    <div id="pack-result" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 rounded-2xl bg-white/5 border border-white/10 p-6">
+            <h4 class="text-lg font-semibold text-sky-200 mb-3">Packing list</h4>
+            <p id="pack-meta" class="text-sm text-sky-100/80 mb-4">Select options and press <span class="font-medium">Generate list</span>.</p>
+            <ul id="pack-list" class="flex flex-wrap gap-2"></ul>
+        </div>
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-6">
+            <h4 class="text-lg font-semibold text-sky-200 mb-3">Smart notes</h4>
+            <ul id="pack-notes" class="flex flex-col gap-2 text-sm text-sky-100/85"></ul>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/assistant.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,391 @@
+{% extends 'layout.html' %}
+{% block title %}Command Center — SkyCast{% endblock %}
+{% block head %}
+<style>
+  .cmd-card {
+    position: relative;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .cmd-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(125, 211, 252, .45);
+    box-shadow: 0 18px 50px -12px rgba(56, 189, 248, .28), 0 8px 32px 0 rgba(31, 38, 135, .15);
+  }
+  .toggle { appearance: none; width: 44px; height: 24px; border-radius: 999px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); position: relative; cursor: pointer; transition: background .2s ease; flex-shrink: 0; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #e0f2fe; transition: transform .2s ease; }
+  .toggle:checked { background: #38bdf8; }
+  .toggle:checked::after { transform: translateX(20px); }
+  .severity-badge { font-size: .7rem; padding: .2rem .6rem; border-radius: 999px; font-weight: 600; text-transform: capitalize; }
+  .sev-info { background: rgba(56,189,248,.18); color: #7dd3fc; }
+  .sev-warning { background: rgba(251,191,36,.18); color: #fcd34d; }
+  .sev-emergency { background: rgba(244,63,94,.2); color: #fda4af; }
+  .flag-row { transition: background-color .2s ease, border-color .2s ease; }
+  .flag-row:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.18); }
+  .key-row { transition: background-color .2s ease; }
+  .key-row:hover { background: rgba(255,255,255,.06); }
+  .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background: rgba(125,211,252,.3); border-radius: 999px; }
+  .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+  .tier-Free { border-color: rgba(16,185,129,.55); color: #a7f3d0; }
+  .tier-Pro { border-color: rgba(56,189,248,.55); color: #bae6fd; }
+  .tier-Enterprise { border-color: rgba(167,139,250,.55); color: #ddd6fe; }
+  .spinner { width: 14px; height: 14px; border-radius: 999px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex flex-wrap items-end justify-between gap-4 text-shadow-sm">
+    <div>
+        <h2 class="text-4xl md:text-5xl font-light">Admin <span class="font-bold">Command Center</span></h2>
+        <p class="mt-2 text-sky-100/90 font-light text-lg">Feature flags, emergency broadcasts, and live API key tier management.</p>
+    </div>
+    <div class="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-2 text-xs text-sky-100/80 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Console live · up <span id="uptime-label">—</span>
+    </div>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+    <!-- ============ FEATURE FLAGS ============ -->
+    <div class="cmd-card flex flex-col overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-sky-400 via-cyan-300 to-indigo-400"></div>
+        <div class="relative p-6 md:p-7 flex flex-col flex-1">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3.5">
+                    <span class="grid place-items-center w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-400/25 to-indigo-500/25 border border-white/15 text-xl shadow-inner">⚙️</span>
+                    <div>
+                        <h3 class="text-lg font-semibold leading-tight">System <span class="font-bold text-sky-200">Feature Flags</span></h3>
+                        <p class="text-xs text-sky-100/60 font-light mt-0.5">Toggle public features live, no restart needed.</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/15 px-2.5 py-1 text-[10px] uppercase tracking-widest text-sky-100/60 shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Live</span>
+            </div>
+
+            <p class="mt-6 mb-2.5 text-[11px] uppercase tracking-widest text-sky-100/50 font-medium">Site toggles</p>
+            <div class="flex flex-col gap-2.5 flex-1" id="flags-list">
+                <div class="flag-row flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3 transition-colors">
+                    <div><p class="text-sm font-medium">Live Radar Map</p><p class="text-[11px] text-sky-100/50">/maps</p></div>
+                    <div class="flex items-center gap-2.5"><span class="flag-state text-[10px] font-bold uppercase tracking-wider text-emerald-300">On</span><input type="checkbox" class="toggle" data-flag="radar_map_enabled" checked></div>
+                </div>
+                <div class="flag-row flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3 transition-colors">
+                    <div><p class="text-sm font-medium">AI Assistant</p><p class="text-[11px] text-sky-100/50">/assistant</p></div>
+                    <div class="flex items-center gap-2.5"><span class="flag-state text-[10px] font-bold uppercase tracking-wider text-emerald-300">On</span><input type="checkbox" class="toggle" data-flag="ai_assistant_enabled" checked></div>
+                </div>
+                <div class="flag-row flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3 transition-colors">
+                    <div><p class="text-sm font-medium">Offline Simulation</p><p class="text-[11px] text-sky-100/50">force simulated payloads</p></div>
+                    <div class="flex items-center gap-2.5"><span class="flag-state text-[10px] font-bold uppercase tracking-wider text-sky-100/40">Off</span><input type="checkbox" class="toggle" data-flag="offline_simulation_mode"></div>
+                </div>
+                <div class="flag-row flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3 transition-colors">
+                    <div><p class="text-sm font-medium">Maintenance Banner</p><p class="text-[11px] text-sky-100/50">site-wide notice</p></div>
+                    <div class="flex items-center gap-2.5"><span class="flag-state text-[10px] font-bold uppercase tracking-wider text-sky-100/40">Off</span><input type="checkbox" class="toggle" data-flag="maintenance_banner"></div>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+                <span id="flags-status" class="text-emerald-300 font-medium hidden">✓ Flags saved</span>
+                <span class="text-sky-100/50 font-light ml-auto">changes apply instantly</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ BROADCAST ALERTS ============ -->
+    <div class="cmd-card flex flex-col overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-rose-400 via-orange-300 to-amber-400"></div>
+        <div class="relative p-6 md:p-7 flex flex-col flex-1">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3.5">
+                    <span class="grid place-items-center w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-400/25 to-orange-500/25 border border-white/15 text-xl shadow-inner">🚨</span>
+                    <div>
+                        <h3 class="text-lg font-semibold leading-tight">Broadcast <span class="font-bold text-sky-200">Warning Center</span></h3>
+                        <p class="text-xs text-sky-100/60 font-light mt-0.5">Push severe-weather alerts to all users or specific cities.</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/15 px-2.5 py-1 text-[10px] uppercase tracking-widest text-sky-100/60 shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>Dispatch</span>
+            </div>
+
+            <div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+                <div class="mb-3">
+                    <label for="alert-title" class="block text-[11px] uppercase tracking-widest text-sky-100/70 font-medium mb-1.5">Warning title <span class="text-rose-300">*</span></label>
+                    <input id="alert-title" type="text" maxlength="80" placeholder="e.g. Extreme Heatwave Alert" class="w-full rounded-xl bg-white/10 border border-white/25 text-white px-4 py-2.5 text-sm transition-colors focus:outline-none focus:border-sky-300/60 focus:ring-2 focus:ring-sky-300/30 placeholder-sky-100/40">
+                </div>
+                <div class="mb-3">
+                    <label for="alert-msg" class="block text-[11px] uppercase tracking-widest text-sky-100/70 font-medium mb-1.5">Message details <span class="text-rose-300">*</span></label>
+                    <textarea id="alert-msg" rows="2" maxlength="280" placeholder="What should users know? Add safety guidance..." class="w-full rounded-xl bg-white/10 border border-white/25 text-white px-4 py-2.5 text-sm transition-colors focus:outline-none focus:border-sky-300/60 focus:ring-2 focus:ring-sky-300/30 placeholder-sky-100/40"></textarea>
+                    <p class="mt-1 text-right text-[10px] text-sky-100/40"><span id="alert-count">0</span> / 280</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label for="alert-severity" class="block text-[11px] uppercase tracking-widest text-sky-100/70 font-medium mb-1.5">Severity</label>
+                        <div class="relative">
+                            <span id="severity-dot" class="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                            <select id="alert-severity" class="w-full appearance-none rounded-xl bg-white/10 border border-white/25 text-white pl-8 pr-8 py-2.5 text-sm transition-colors focus:outline-none focus:border-sky-300/60 focus:ring-2 focus:ring-sky-300/30 cursor-pointer [&>option]:text-slate-900">
+                                <option value="info">ℹ️ Information</option>
+                                <option value="warning" selected>⚠️ Warning</option>
+                                <option value="emergency">🚨 Emergency</option>
+                            </select>
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-sky-100/60 pointer-events-none">▼</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="alert-city" class="block text-[11px] uppercase tracking-widest text-sky-100/70 font-medium mb-1.5">Target city</label>
+                        <input id="alert-city" list="city-list" type="text" placeholder="All cities" class="w-full rounded-xl bg-white/10 border border-white/25 text-white px-4 py-2.5 text-sm transition-colors focus:outline-none focus:border-sky-300/60 focus:ring-2 focus:ring-sky-300/30 placeholder-sky-100/40">
+                        <datalist id="city-list">
+                            <option value="karachi">Karachi</option>
+                            <option value="lahore">Lahore</option>
+                            <option value="islamabad">Islamabad</option>
+                            <option value="dubai">Dubai</option>
+                            <option value="london">London</option>
+                            <option value="newyork">New York</option>
+                        </datalist>
+                        <p class="mt-1 text-[10px] text-sky-100/40">blank = broadcast to all cities</p>
+                    </div>
+                </div>
+                <button id="dispatch-btn" onclick="dispatchAlert()" class="w-full rounded-xl bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 border border-rose-300/40 px-4 py-2.5 text-sm font-semibold transition-all shadow-lg shadow-rose-900/30 disabled:opacity-60 disabled:cursor-not-allowed">
+                    <span class="flex items-center justify-center gap-2">
+                        <span id="dispatch-spinner" class="spinner hidden"></span>
+                        <span id="dispatch-label">Dispatch Warning Banner</span>
+                    </span>
+                </button>
+                <p id="dispatch-feedback" class="mt-2 text-xs font-medium hidden"></p>
+            </div>
+        <div class="mt-5 flex-1 min-h-0">
+                <div class="flex items-center justify-between mb-2.5">
+                    <p class="text-[11px] uppercase tracking-widest text-sky-100/50 font-medium">Active broadcasts</p>
+                    <span id="alert-count-badge" class="rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-sky-100/70">0</span>
+                </div>
+                <div class="flex flex-col gap-2 max-h-52 overflow-y-auto scroll-thin pr-1" id="active-alerts">
+                    <p class="text-xs text-sky-100/50">Loading active alerts…</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ API KEY TIER MANAGER ============ -->
+    <div class="cmd-card flex flex-col overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-sky-400 to-violet-400"></div>
+        <div class="relative p-6 md:p-7 flex flex-col flex-1">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3.5">
+                    <span class="grid place-items-center w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400/25 to-violet-500/25 border border-white/15 text-xl shadow-inner">🔑</span>
+                    <div>
+                        <h3 class="text-lg font-semibold leading-tight">API Key <span class="font-bold text-sky-200">Tier Manager</span></h3>
+                        <p class="text-xs text-sky-100/60 font-light mt-0.5">Upgrade, downgrade, or revoke developer keys and rate limits.</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/15 px-2.5 py-1 text-[10px] uppercase tracking-widest text-sky-100/60 shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Live</span>
+            </div>
+
+            <div class="mt-6 flex-1 min-h-0 max-h-80 overflow-auto scroll-thin rounded-xl border border-white/10 bg-white/5">
+                <table class="w-full text-sm">
+                    <thead><tr class="sticky top-0 z-10 bg-slate-900/85 backdrop-blur-md text-left text-[10px] uppercase tracking-widest text-sky-100/70 border-b border-white/10">
+                        <th class="py-3 pl-4 pr-3 font-medium">Key</th><th class="py-3 pr-3 font-medium">Tier</th><th class="py-3 pr-3 font-medium">Limit</th><th class="py-3 pr-3 font-medium">Status</th><th class="py-3 pr-4 font-medium text-right">Action</th>
+                    </tr></thead>
+                    <tbody id="keys-tbody"></tbody>
+                </table>
+            </div>
+            <div id="keys-empty" class="hidden mt-6 rounded-2xl border border-dashed border-white/15 bg-white/5 py-8 text-center">
+                <p class="text-2xl">🔑</p>
+                <p class="mt-1 text-sm text-sky-100/70 font-light">No API keys yet.</p>
+                <p class="text-xs text-sky-100/50 font-light mt-0.5">Developers create keys at /developers.</p>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+                <span id="keys-count" class="text-sky-100/70 font-medium">0 keys</span>
+                <span class="text-sky-100/50 font-light">minted by developers</span>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+
+  function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : String(t); return d.innerHTML; }
+  function fmtUptime(s) {
+    if (s < 90) return Math.round(s) + "s";
+    if (s < 5400) return Math.round(s / 60) + "m";
+    if (s < 172800) return Math.round(s / 3600) + "h";
+    return Math.round(s / 86400) + "d";
+  }
+
+  // ---- Feature flags ----
+  function flagStateText(t) {
+    var row = t.closest(".flag-row");
+    var s = row && row.querySelector(".flag-state");
+    if (!s) return;
+    s.textContent = t.checked ? "On" : "Off";
+    s.className = "flag-state text-[10px] font-bold uppercase tracking-wider " + (t.checked ? "text-emerald-300" : "text-sky-100/40");
+  }
+  function loadFlags() {
+    fetch("/admin/api/admin/feature-flags").then(function (r) { return r.json(); }).then(function (d) {
+      var f = d.flags || {};
+      document.querySelectorAll("[data-flag]").forEach(function (t) {
+        t.checked = !!f[t.getAttribute("data-flag")];
+        flagStateText(t);
+      });
+      var up = document.getElementById("uptime-label");
+      if (up && f.uptime_seconds) up.textContent = fmtUptime(f.uptime_seconds);
+    });
+  }
+  function saveFlags() {
+    var payload = {};
+    document.querySelectorAll("[data-flag]").forEach(function (t) {
+      payload[t.getAttribute("data-flag")] = t.checked;
+      flagStateText(t);
+    });
+    fetch("/admin/api/admin/feature-flags", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      var s = document.getElementById("flags-status");
+      s.textContent = "✓ " + (d.message || "Flags saved");
+      s.classList.remove("hidden");
+      setTimeout(function () { s.classList.add("hidden"); }, 2500);
+    });
+  }
+  document.querySelectorAll("[data-flag]").forEach(function (t) { t.addEventListener("change", saveFlags); });
+  loadFlags();
+
+  // ---- Broadcast alerts ----
+  function timeAgo(iso) {
+    if (!iso) return "";
+    var t = new Date(iso.length >= 19 ? iso.replace(" ", "T") : iso);
+    if (isNaN(t.getTime())) return "";
+    var s = Math.floor((Date.now() - t.getTime()) / 1000);
+    if (s < 60) return "just now";
+    if (s < 3600) return Math.floor(s / 60) + "m ago";
+    if (s < 86400) return Math.floor(s / 3600) + "h ago";
+    return Math.floor(s / 86400) + "d ago";
+  }
+  function renderAlerts(d) {
+    var box = document.getElementById("active-alerts");
+    var badge = document.getElementById("alert-count-badge");
+    var alerts = d.alerts || [];
+    if (badge) badge.textContent = alerts.length;
+    if (!alerts.length) {
+      box.innerHTML = '<div class="rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-5 text-center"><p class="text-lg">✅</p><p class="text-xs text-sky-100/50 font-light mt-1">No active alerts. Dispatch one above.</p></div>';
+      return;
+    }
+    box.innerHTML = alerts.map(function (a) {
+      var sev = "sev-" + a.severity;
+      return '<div class="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 flex items-start justify-between gap-2 transition-colors hover:bg-white/10">'
+        + '<div class="min-w-0"><div class="flex flex-wrap items-center gap-1.5 mb-0.5"><span class="severity-badge ' + sev + '">' + esc(a.severity) + '</span>'
+        + '<span class="text-[11px] text-sky-100/50">🎯 ' + esc(a.target_city || "All") + '</span>'
+        + '<span class="text-[10px] text-sky-100/40">· ' + timeAgo(a.created_at) + '</span></div>'
+        + '<p class="text-sm font-medium truncate">' + esc(a.title) + "</p>"
+        + '<p class="text-xs text-sky-100/60 truncate">' + esc(a.message) + "</p></div>"
+        + '<button onclick="deactivateAlert(' + a.id + ')" class="text-[10px] shrink-0 text-rose-300 hover:text-rose-200 border border-rose-400/30 hover:border-rose-300/60 hover:bg-rose-400/10 rounded-full px-2.5 py-1 transition-colors">Off</button></div>';
+    }).join("");
+  }
+  function loadAlerts() {
+    fetch("/admin/api/admin/broadcast-alert").then(function (r) { return r.json(); }).then(renderAlerts);
+  }
+  function setFeedback(text, ok) {
+    var f = document.getElementById("dispatch-feedback");
+    if (!f) return;
+    f.textContent = text;
+    f.className = "mt-2 text-xs font-medium " + (ok ? "text-emerald-300" : "text-rose-300");
+    f.classList.remove("hidden");
+    clearTimeout(window.__dispatchFbTimer);
+    window.__dispatchFbTimer = setTimeout(function () { f.classList.add("hidden"); }, 4000);
+  }
+  window.dispatchAlert = function () {
+    var title = document.getElementById("alert-title").value.trim();
+    var message = document.getElementById("alert-msg").value.trim();
+    if (!title || !message) { setFeedback("⚠️ Title and message are required before dispatching.", false); return; }
+    var btn = document.getElementById("dispatch-btn");
+    var spinner = document.getElementById("dispatch-spinner");
+    var label = document.getElementById("dispatch-label");
+    btn.disabled = true;
+    spinner.classList.remove("hidden");
+    label.textContent = "Dispatching…";
+    var body = {
+      title: title,
+      message: message,
+      severity: document.getElementById("alert-severity").value,
+      target_city: document.getElementById("alert-city").value.trim() || "All",
+    };
+    fetch("/admin/api/admin/broadcast-alert", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.status === "error") throw new Error(d.message || "Dispatch failed");
+      loadAlerts();
+      document.getElementById("alert-title").value = "";
+      document.getElementById("alert-msg").value = "";
+      document.getElementById("alert-count").textContent = "0";
+      setFeedback("✓ Alert dispatched to " + body.target_city + ".", true);
+    }).catch(function (err) {
+      setFeedback("⚠️ " + (err.message || "Could not dispatch alert."), false);
+    }).finally(function () {
+      btn.disabled = false;
+      spinner.classList.add("hidden");
+      label.textContent = "Dispatch Warning Banner";
+    });
+  };
+  window.deactivateAlert = function (id) {
+    fetch("/admin/api/admin/broadcast-alert?id=" + id, { method: "DELETE" }).then(function () { loadAlerts(); });
+  };
+  loadAlerts();
+
+  // Severity selector accent dot + message character counter
+  var sevSelect = document.getElementById("alert-severity");
+  var sevDot = document.getElementById("severity-dot");
+  var msgBox = document.getElementById("alert-msg");
+  var msgCount = document.getElementById("alert-count");
+  var SEV_COLORS = { info: "bg-sky-400", warning: "bg-amber-400", emergency: "bg-rose-500" };
+  sevSelect.addEventListener("change", function () {
+    sevDot.className = "absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full " + (SEV_COLORS[sevSelect.value] || "bg-sky-400");
+  });
+  msgBox.addEventListener("input", function () { msgCount.textContent = msgBox.value.length; });
+
+  // ---- API key tier manager ----
+  function tierClass(t) { return "tier-" + t; }
+  function renderKeys(d) {
+    var tbody = document.getElementById("keys-tbody");
+    var empty = document.getElementById("keys-empty");
+    var count = document.getElementById("keys-count");
+    var keys = d.keys || [];
+    if (count) count.textContent = keys.length + " key" + (keys.length === 1 ? "" : "s");
+    if (!keys.length) { tbody.innerHTML = ""; if (empty) empty.classList.remove("hidden"); return; }
+    if (empty) empty.classList.add("hidden");
+    tbody.innerHTML = keys.map(function (k) {
+      var active = k.is_active;
+      var owner = (k.email || "").split("@")[0] || (k.name || "developer");
+      return '<tr class="key-row border-b border-white/5 transition-colors">'
+        + '<td class="py-3 pl-4 pr-3"><p class="font-mono text-xs text-sky-200">' + esc(k.masked_key || "—") + "</p>"
+        + '<p class="text-[11px] text-sky-100/45 font-light mt-0.5">' + esc(k.name || "Default")
+        + " · " + esc(owner) + "</p></td>"
+        + '<td class="py-3 pr-3"><select onchange="updateTier(' + k.id + ', this.value)" class="' + tierClass(k.tier) + ' rounded-lg bg-white/10 border text-xs font-semibold px-2 py-1.5 cursor-pointer focus:outline-none [&>option]:text-slate-900 [&>option]:font-normal">'
+        + '<option value="Free"' + (k.tier === "Free" ? " selected" : "") + '>Free</option>'
+        + '<option value="Pro"' + (k.tier === "Pro" ? " selected" : "") + '>Pro</option>'
+        + '<option value="Enterprise"' + (k.tier === "Enterprise" ? " selected" : "") + '>Enterprise</option>'
+        + "</select></td>"
+        + '<td class="py-3 pr-3 text-xs text-sky-100/80">' + (k.rate_limit_rpm == null ? "—" : esc(k.rate_limit_rpm)) + " rpm</td>"
+        + '<td class="py-3 pr-3"><span class="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-full px-2 py-1 ' + (active ? "bg-emerald-400/15 text-emerald-300 border border-emerald-300/25" : "bg-rose-400/15 text-rose-300 border border-rose-300/25") + '">' + (active ? "Active" : "Revoked") + "</span></td>"
+        + '<td class="py-3 pr-4 text-right"><button onclick="toggleKey(' + k.id + ',' + (active ? "0" : "1") + ')" class="text-[10px] font-semibold rounded-full border px-2.5 py-1 transition-colors ' + (active ? "border-rose-400/40 text-rose-300 hover:bg-rose-400/10" : "border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10") + '">' + (active ? "Revoke" : "Enable") + "</button></td>"
+        + "</tr>";
+    }).join("");
+  }
+  window.updateTier = function (id, tier) {
+    fetch("/admin/api/admin/api-keys", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: id, tier: tier }),
+    }).then(function () { loadKeys(); });
+  };
+  window.toggleKey = function (id, active) {
+    fetch("/admin/api/admin/api-keys", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: id, is_active: active }),
+    }).then(function () { loadKeys(); });
+  };
+  function loadKeys() {
+    fetch("/admin/api/admin/api-keys").then(function (r) { return r.json(); }).then(renderKeys);
+  }
+  loadKeys();
+})();
+</script>
+{% endblock %}

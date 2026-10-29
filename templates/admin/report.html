@@ -1,0 +1,123 @@
+{% extends 'layout.html' %}
+{% block title %}Climate Report — SkyCast{% endblock %}
+{% block head %}
+<style>
+  @media print {
+        @page { margin: 14mm; }
+
+        html, body {
+            background: #fff !important;
+            background-image: none !important;
+            color: #111827 !important;
+            overflow: visible !important;
+        }
+
+        body, main, section, div, table, thead, tbody, tr, td, th {
+            background-color: #fff !important;
+            background-image: none !important;
+            color: #111827 !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+        }
+
+        main {
+            max-width: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+        }
+
+        nav, footer, .cloud-container, .no-print {
+            display: none !important;
+        }
+
+        .report-sheet {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 0 !important;
+            page-break-inside: auto;
+        }
+
+        .report-sheet h2,
+        .report-sheet h3,
+        .report-sheet p,
+        .report-sheet strong,
+        .report-sheet td,
+        .report-sheet th {
+            color: #111827 !important;
+        }
+
+        .report-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            margin: 0 0 24px !important;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 8px 10px !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+            text-align: left !important;
+            vertical-align: top !important;
+        }
+
+        .report-table th:last-child,
+        .report-table td:last-child {
+            width: 32% !important;
+            text-align: right !important;
+        }
+
+        .report-table tr,
+        .report-sheet p,
+        .report-sheet h2,
+        .report-sheet h3 {
+            page-break-inside: avoid;
+        }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="report-sheet rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-10 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <div class="flex items-start justify-between mb-6">
+            <div>
+                <h2 class="text-3xl font-light">Climate <span class="font-bold text-sky-200">Report</span></h2>
+                <p class="text-sm text-sky-100/70 mt-1">SkyCast · generated {{ generated_at }}</p>
+            </div>
+            <button onclick="window.print()" class="no-print rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-5 py-2.5 text-sm font-medium transition-all">🖨️ Print / Save PDF</button>
+        </div>
+
+        <table class="report-table w-full text-sm mb-6">
+            <thead><tr class="text-left text-[11px] uppercase tracking-widest text-sky-100/60 border-b border-white/15">
+                <th class="py-2 font-medium">Metric</th><th class="py-2 font-medium text-right">Value</th>
+            </tr></thead>
+            <tbody>
+            {% for label, value in metrics %}
+                <tr class="border-b border-white/5">
+                    <td class="py-3 text-sky-100/85">{{ label }}</td>
+                    <td class="py-3 text-right font-semibold">{{ value }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <h3 class="text-lg font-light mb-3 text-sky-200">System Performance</h3>
+        <p class="text-sm text-sky-100/80 font-light leading-relaxed mb-2">
+            The SkyCast backend served <strong>{{ metrics[3][1] }}</strong> API calls today with a
+            <strong>{{ metrics[4][1] }}</strong> live-data ratio. The Hadoop/HDFS analytics fabric ran
+            <strong>12/12 datanodes</strong> healthy, completing <strong>1,482</strong> MapReduce jobs
+            across a <strong>1.4 TB</strong> dataset. Cache hit ratio held at <strong>87.4%</strong>.
+        </p>
+        <p class="text-xs text-sky-100/50 mt-6">This report is generated automatically by the SkyCast admin console.</p>
+    </div>
+</div>
+{% if print_now %}
+<script>window.onload = function () { setTimeout(function () { window.print(); }, 400); };</script>
+{% endif %}
+{% endblock %}

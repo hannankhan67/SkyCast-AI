@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+{% block title %}Health & Symptom Weather Index — SkyCast{% endblock %}
+{% block head %}
+<style>
+  .risk-card { transition: transform .2s ease, box-shadow .2s ease; }
+  .risk-card:hover { transform: translateY(-3px); }
+  .lv-high { background: linear-gradient(135deg, rgba(244,63,94,0.18), rgba(255,255,255,0.03)); border-color: rgba(244,63,94,0.45); }
+  .lv-moderate { background: linear-gradient(135deg, rgba(251,191,36,0.16), rgba(255,255,255,0.03)); border-color: rgba(251,191,36,0.40); }
+  .lv-low { background: linear-gradient(135deg, rgba(52,211,153,0.16), rgba(255,255,255,0.03)); border-color: rgba(52,211,153,0.40); }
+  .dot-high { background:#f43f5e; } .dot-moderate { background:#fbbf24; } .dot-low { background:#34d399; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Health &amp; Symptom <span class="font-bold">Index</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Environmental vulnerability scores for weather-sensitive conditions — migraines, asthma, joint pain, UV and pollen.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] self-start">
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">City</label>
+        <select id="health-city" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            {% for c in cities %}<option value="{{ c }}">{{ c|title }}</option>{% endfor %}
+        </select>
+        <button id="health-load" class="btn-brand w-full rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-6 py-3 text-sm font-medium transition-all">Analyze Conditions</button>
+        <div id="health-overall" class="mt-6 rounded-2xl bg-white/10 border border-white/15 p-5 text-center">
+            <p class="text-xs uppercase tracking-widest text-sky-100/70">Overall Risk</p>
+            <p id="health-overall-lvl" class="text-2xl font-light mt-1">—</p>
+        </div>
+        <p class="mt-4 text-xs text-sky-100/60 font-light leading-relaxed">Index is computed from live temperature, humidity, pressure, UV and air quality.</p>
+    </div>
+
+    <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div id="card-migraine" class="glass-card risk-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-3"><h4 class="text-lg font-light">🤕 <span class="font-semibold text-sky-200">Migraine</span></h4><span class="w-2.5 h-2.5 rounded-full dot-low"></span></div>
+            <p class="text-3xl font-light" data-level>—</p>
+            <p class="mt-3 text-sm text-sky-100/80 font-light" data-detail>Select a city to analyze barometric pressure trends.</p>
+        </div>
+        <div id="card-asthma" class="glass-card risk-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-3"><h4 class="text-lg font-light">🫁 <span class="font-semibold text-sky-200">Asthma / Air</span></h4><span class="w-2.5 h-2.5 rounded-full dot-low"></span></div>
+            <p class="text-3xl font-light" data-level>—</p>
+            <p class="mt-3 text-sm text-sky-100/80 font-light" data-detail>Air quality index drives outdoor respiratory risk.</p>
+        </div>
+        <div id="card-joint" class="glass-card risk-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-3"><h4 class="text-lg font-light">🦴 <span class="font-semibold text-sky-200">Joint Pain</span></h4><span class="w-2.5 h-2.5 rounded-full dot-low"></span></div>
+            <p class="text-3xl font-light" data-level>—</p>
+            <p class="mt-3 text-sm text-sky-100/80 font-light" data-detail>Humidity and pressure drops aggravate joints.</p>
+        </div>
+        <div id="card-uv" class="glass-card risk-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-3"><h4 class="text-lg font-light">☀️ <span class="font-semibold text-sky-200">UV / Skin</span></h4><span class="w-2.5 h-2.5 rounded-full dot-low"></span></div>
+            <p class="text-3xl font-light" data-level>—</p>
+            <p class="mt-3 text-sm text-sky-100/80 font-light" data-detail>Sunburn risk and safe-exposure window.</p>
+        </div>
+        <div id="card-pollen" class="glass-card risk-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-3"><h4 class="text-lg font-light">🌿 <span class="font-semibold text-sky-200">Pollen</span></h4><span class="w-2.5 h-2.5 rounded-full dot-low"></span></div>
+            <p class="text-3xl font-light" data-level>—</p>
+            <p class="mt-3 text-sm text-sky-100/80 font-light" data-detail>Seasonal allergen load for the region.</p>
+        </div>
+        <div id="card-pressure" class="glass-card risk-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <div class="flex items-center justify-between mb-3"><h4 class="text-lg font-light">🌀 <span class="font-semibold text-sky-200">Pressure</span></h4><span class="w-2.5 h-2.5 rounded-full dot-low"></span></div>
+            <p class="text-3xl font-light" data-level>—</p>
+            <p class="mt-3 text-sm text-sky-100/80 font-light" data-detail>Current vs 3-hour-ago barometric pressure.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/health.js') }}"></script>
+{% endblock %}

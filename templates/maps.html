@@ -1,0 +1,97 @@
+{% extends 'layout.html' %}
+{% block title %}Forecast Map — SkyCast{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  .layer-btn.active {
+    background-color: #38bdf8 !important;
+    color: #0f172a !important;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+  }
+  .hourly-scroll::-webkit-scrollbar { height: 6px; }
+  .hourly-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); border-radius: 999px; }
+  .hourly-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 999px; }
+  #lightning-map { height: 460px; border-radius: 1.25rem; z-index: 0; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #0f172a; color: #e0f2fe; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Forecast <span class="font-bold">Map</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Interactive animated weather layers and live radar over Pakistan — powered by Windy.com + RainViewer.</p>
+</header>
+
+<!-- Forecast Map Container -->
+<div class="relative w-full h-[650px] rounded-2xl overflow-hidden border border-slate-700 shadow-2xl bg-[#131722]">
+  <iframe id="forecastMap" class="w-full h-full border-none" src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=30.3753&lon=69.3451&detailLat=30.3753&detailLon=69.3451&marker=true&message=true" title="SkyCast Forecast Map" loading="lazy"></iframe>
+
+  <div class="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-slate-700 shadow-xl">
+    <h3 class="text-white text-xs font-bold mb-1 px-1 tracking-wider uppercase text-slate-400">Forecast Layers</h3>
+    <button onclick="changeForecastLayer('temp', this)" class="layer-btn bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition-colors text-left flex items-center gap-3"><span class="text-lg">🌡️</span> Temperature</button>
+    <button onclick="changeForecastLayer('rain', this)" class="layer-btn bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition-colors text-left flex items-center gap-3"><span class="text-lg">🌧️</span> Precipitation</button>
+    <button onclick="changeForecastLayer('wind', this)" class="layer-btn bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition-colors text-left flex items-center gap-3 active"><span class="text-lg">💨</span> Wind Animation</button>
+    <button onclick="changeForecastLayer('clouds', this)" class="layer-btn bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition-colors text-left flex items-center gap-3"><span class="text-lg">☁️</span> Clouds</button>
+    <button onclick="changeForecastLayer('pressure', this)" class="layer-btn bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm hover:bg-slate-700 transition-colors text-left flex items-center gap-3"><span class="text-lg">🌀</span> Pressure</button>
+  </div>
+</div>
+
+<!-- RainViewer Live Radar -->
+<section class="mt-10">
+    <div class="flex items-end justify-between mb-4">
+        <h3 class="text-3xl md:text-4xl font-light">Live <span class="font-bold text-sky-200">Radar</span></h3>
+        <span class="text-xs text-sky-100/70 font-light">RainViewer · updates every 10 min</span>
+    </div>
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-4 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <iframe id="rainviewer" class="w-full h-[400px] rounded-xl border-none" src="https://www.rainviewer.com/map.html?loc=30.3753,69.3451,5&oFa=0&oC=0&oU=0&oCS=1&oF=0&oAP=1&c=3&o=83&lm=1&layer=radar" loading="lazy"></iframe>
+    </div>
+</section>
+
+<!-- Hourly Slider -->
+<section class="mt-10">
+    <div class="flex items-end justify-between mb-4">
+        <h3 class="text-3xl md:text-4xl font-light">24-Hour <span class="font-bold text-sky-200">Timeline</span></h3>
+        <span class="text-xs text-sky-100/70 font-light">scrub to animate hourly forecast</span>
+    </div>
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <input id="hourly-slider" type="range" min="0" max="23" value="0" class="w-full mb-6 accent-sky-300">
+        <div id="hourly-display" class="hourly-scroll flex gap-4 overflow-x-auto pb-2"></div>
+    </div>
+</section>
+
+<!-- Info Cards -->
+<section class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="glass-card rounded-[1.5rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7">
+        <h5 class="text-lg font-light mb-2">Animated <span class="font-semibold text-sky-200">Wind Flow</span></h5>
+        <p class="text-sm text-sky-100/80 font-light leading-relaxed">Millions of particles visualize real-time wind currents across Pakistan.</p>
+    </div>
+    <div class="glass-card rounded-[1.5rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7">
+        <h5 class="text-lg font-light mb-2">7-Day <span class="font-semibold text-sky-200">Forecast</span></h5>
+        <p class="text-sm text-sky-100/80 font-light leading-relaxed">Use the timeline slider at the bottom of the map to play through the ECMWF forecast.</p>
+    </div>
+    <div class="glass-card rounded-[1.5rem] bg-white/10 backdrop-blur-lg border border-white/20 p-7">
+        <h5 class="text-lg font-light mb-2">Live <span class="font-semibold text-sky-200">Radar</span></h5>
+        <p class="text-sm text-sky-100/80 font-light leading-relaxed">Real-time precipitation tiles from RainViewer updated every 10 minutes.</p>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const baseUrl = "https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=km/h&zoom=5&product=ecmwf&level=surface&lat=30.3753&lon=69.3451&detailLat=30.3753&detailLon=69.3451&marker=true&message=true";
+  function changeForecastLayer(overlay, clickedButton) {
+    const iframe = document.getElementById('forecastMap');
+    iframe.src = baseUrl + '&overlay=' + overlay;
+    if (clickedButton) {
+      document.querySelectorAll('.layer-btn').forEach(function(btn) { btn.classList.remove('active'); });
+      clickedButton.classList.add('active');
+    }
+  }
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/maps.js') }}"></script>
+{% endblock %}

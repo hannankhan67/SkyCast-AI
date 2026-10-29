@@ -1,0 +1,128 @@
+{% extends 'layout.html' %}
+{% block title %}Pricing — SkyCast{% endblock %}
+
+{% block content %}
+<header class="mb-10 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Unlock the <span class="font-bold text-sky-200">full sky</span>.</h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Start free. Upgrade to Premium for advanced radar, analytics and priority features.</p>
+</header>
+
+<section class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+
+    <!-- Free tier -->
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-8 shadow-xl flex flex-col">
+        <div class="text-xs uppercase tracking-widest text-sky-100/60 mb-2">Free</div>
+        <div class="text-4xl font-light mb-1">$0<span class="text-base text-sky-100/60">/mo</span></div>
+        <p class="text-sm text-sky-100/70 mb-6">Everything you need to start exploring.</p>
+        <ul class="space-y-3 text-sm text-sky-100/85 mb-8 flex-1">
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Live weather &amp; 7-day forecast</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Health Index &amp; Event Planner</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Smart Commute routes</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Solar, Agri &amp; Historical insights</li>
+            <li class="flex items-start gap-2 text-slate-400"><span>✕</span> Radar &amp; precipitation layers</li>
+        </ul>
+        {% if not current_user %}
+            <a href="{{ url_for('auth.signup') }}" class="block text-center px-5 py-3 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 transition-all">Get started free</a>
+        {% else %}
+            <span class="block text-center px-5 py-3 rounded-full border border-white/15 text-slate-400 cursor-default">Your current plan</span>
+        {% endif %}
+    </div>
+
+    <!-- Premium tier -->
+    <div class="glass-card rounded-[2rem] bg-gradient-to-br from-sky-500/20 to-indigo-500/20 backdrop-blur-lg border border-sky-300/30 p-8 shadow-xl flex flex-col relative overflow-hidden">
+        <span class="absolute top-4 right-4 text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full bg-amber-300/20 border border-amber-300/40 text-amber-200">Recommended</span>
+        <div class="text-xs uppercase tracking-widest text-sky-100/60 mb-2">Premium</div>
+        <div class="text-4xl font-light mb-1">$9<span class="text-base text-sky-100/60">/mo</span></div>
+        <p class="text-sm text-sky-100/70 mb-6">Advanced telemetry for power users &amp; analysts.</p>
+        <ul class="space-y-3 text-sm text-sky-100/85 mb-8 flex-1">
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Everything in Free</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Radar &amp; precipitation / cloud / wind layers</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Extreme-event analytics engine</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Priority forecast accuracy updates</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-300">✓</span> Early access to new layers</li>
+        </ul>
+        {% if not current_user %}
+            <a href="{{ url_for('auth.signup') }}" class="block text-center px-5 py-3 rounded-full bg-white/90 text-sky-700 font-semibold hover:bg-white transition-all">Start free trial</a>
+        {% elif is_premium %}
+            <span class="block text-center px-5 py-3 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-200 cursor-default">✓ You're on Premium</span>
+        {% else %}
+            <button id="upgrade-btn" data-next="{{ request.args.get('next') }}" class="w-full px-5 py-3 rounded-full bg-white/90 text-sky-700 font-semibold hover:bg-white transition-all">Upgrade to Premium</button>
+        {% endif %}
+    </div>
+</section>
+
+{% if current_user and not is_premium %}
+<div id="upgrade-toast" class="fixed bottom-6 right-6 z-50 hidden max-w-sm rounded-2xl border border-emerald-400/40 bg-slate-900/90 backdrop-blur-xl shadow-2xl px-5 py-4 text-sm">
+    <p class="font-semibold text-emerald-300 mb-1">Upgrade successful</p>
+    <p class="text-sky-100/80">Premium unlocked. Redirecting…</p>
+</div>
+<script src="{{ url_for('static', filename='js/billing.js') }}"></script>
+<script>
+(function () {
+    var btn = document.getElementById('upgrade-btn');
+    if (!btn) return;
+
+    function nextUrl() {
+        return btn.getAttribute('data-next') || '/maps';
+    }
+
+    function showToast() {
+        var t = document.getElementById('upgrade-toast');
+        if (t) t.classList.remove('hidden');
+    }
+
+    // Offline fallback: the pre-existing demo upgrade endpoint. Reached only
+    // when the server reports Stripe is unconfigured (503 + demo_available)
+    // or when billing.js failed to load.
+    function demoUpgrade() {
+        btn.textContent = 'Activating…';
+        return fetch('/api/account/subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan: 'premium' })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.status === 'ok') {
+                showToast();
+                setTimeout(function () { window.location.href = nextUrl(); }, 900);
+                return true;
+            }
+            btn.textContent = 'Upgrade failed';
+            btn.disabled = false;
+            return false;
+        });
+    }
+
+    btn.addEventListener('click', function () {
+        btn.disabled = true;
+        btn.textContent = 'Redirecting…';
+
+        if (typeof Billing === 'undefined' || !Billing.startCheckout) {
+            demoUpgrade().catch(function () {
+                btn.textContent = 'Upgrade failed';
+                btn.disabled = false;
+            });
+            return;
+        }
+
+        Billing.startCheckout({ next: nextUrl() }).then(function (res) {
+            if (res.ok) return;                        // redirected to Stripe
+            if (res.reason === 'unconfigured') {       // no keys -> demo mode
+                return demoUpgrade();
+            }
+            btn.textContent = res.message || 'Upgrade failed';
+            btn.disabled = false;
+        }).catch(function () {
+            btn.textContent = 'Upgrade failed';
+            btn.disabled = false;
+        });
+    });
+})();
+</script>
+{% endif %}
+
+{% if is_premium %}
+<div class="mt-10 text-center">
+    <a href="{{ url_for('pages.maps') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-100 transition-all">Open Radar →</a>
+</div>
+{% endif %}
+{% endblock %}

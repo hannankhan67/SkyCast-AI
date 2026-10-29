@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyCast — Breathing Sky Climate Dashboard</title>
+<meta name="description" content="SkyCast — a competition-winning weather dashboard: breathing-sky UI, glassmorphism, floating parallax clouds and a Hadoop/HDFS big-data analytics engine.">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/logo.svg') }}">
+
+<!-- Tailwind CSS v4 (Play CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<!-- Typography: Inter, the light editorial look -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Theme: wire Inter into Tailwind's font-sans -->
+<style type="text/tailwindcss">
+  @theme {
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+</style>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="animate-sky min-h-screen text-white font-sans antialiased selection:bg-white/30 selection:text-white relative overflow-x-hidden">
+
+    <!-- ============ 1. Floating Parallax Clouds (behind everything) ============ -->
+    <div class="cloud-container absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-10">
+
+        <!-- Cloud 1: Large, slow -->
+        <div class="cloud cloud-slow opacity-40 scale-125" style="top: 15%; animation-delay: -2s;">
+            <div class="cloud-shape"></div>
+        </div>
+
+        <!-- Cloud 2: Medium, average speed -->
+        <div class="cloud cloud-medium opacity-60" style="top: 30%; animation-delay: -10s;">
+            <div class="cloud-shape"></div>
+        </div>
+
+        <!-- Cloud 3: Small, slightly faster -->
+        <div class="cloud cloud-fast opacity-50 scale-75" style="top: 50%; animation-delay: -18s;">
+            <div class="cloud-shape"></div>
+        </div>
+
+        <!-- Cloud 4: Very large, extremely slow (closer to viewer) -->
+        <div class="cloud cloud-slowest opacity-30 scale-150" style="top: 70%; animation-delay: -25s;">
+            <div class="cloud-shape"></div>
+        </div>
+    </div>
+
+    <!-- ============ Top Navigation (Shared Partials) ============ -->
+    {% include 'partials/nav.html' %}
+
+    <!-- ============ Main Content ============ -->
+    <main class="pt-32 pb-16 px-4 md:px-8 max-w-7xl mx-auto">
+
+        <!-- Hero header -->
+        <header class="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6 text-shadow-sm">
+            <div class="text-center md:text-left">
+                <h2 class="text-5xl md:text-6xl font-light mb-4">
+                    <span id="greeting">Good Afternoon</span>, <span class="font-bold">Abdul</span>.
+                </h2>
+                <p id="sky-line" class="text-xl text-sky-100/90 font-light tracking-wide">The sky is clear in Karachi today.</p>
+            </div>
+            <div class="w-full md:w-72 text-center md:text-left">
+                <label for="city-select" class="text-xs uppercase tracking-widest text-sky-100/70 font-medium">City</label>
+                <select id="city-select" class="glass-select mt-2 w-full rounded-2xl bg-white/10 backdrop-blur-md border border-white/25 text-white px-5 py-3 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+                    <option value="karachi" selected>Karachi, Pakistan</option>
+                    <option value="lahore">Lahore, Pakistan</option>
+                    <option value="islamabad">Islamabad, Pakistan</option>
+                    <option value="dubai">Dubai, UAE</option>
+                    <option value="london">London, UK</option>
+                    <option value="newyork">New York, USA</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- ============ Dashboard Grid ============ -->
+        <section id="dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-8 scroll-mt-28">
+
+            <!-- Main Weather Card (2 columns on desktop) -->
+            <div class="glass-card lg:col-span-2 relative overflow-hidden rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] p-10 group">
+
+                <!-- Subtle inner glow to make the glass pop -->
+                <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <h3 id="city-name" class="text-2xl font-medium opacity-90">Karachi, Sindh</h3>
+                                <span id="data-source" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-widest border bg-emerald-400/20 border-emerald-300/40 text-emerald-200">LIVE</span>
+                            </div>
+                            <div id="temp" class="text-8xl font-light mt-4 tracking-tighter leading-none">32°</div>
+                            <p id="condition" class="text-xl mt-4 text-sky-100 uppercase tracking-widest">Clear Sky</p>
+                        </div>
+
+                        <!-- Weather Icon -->
+                        <div class="mt-8 md:mt-0">
+                            <img id="weather-icon" src="{{ url_for('static', filename='icons/sun.svg') }}" alt="Weather condition" class="w-40 h-40 object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                    </div>
+
+                    <!-- Mini stats -->
+                    <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-4">
+                            <p class="text-xs uppercase tracking-widest text-sky-100/70">Feels Like</p>
+                            <p id="feels-like" class="text-2xl font-light mt-1">34°</p>
+                        </div>
+                        <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-4">
+                            <p class="text-xs uppercase tracking-widest text-sky-100/70">Sunrise</p>
+                            <p id="sunrise" class="text-2xl font-light mt-1">—</p>
+                        </div>
+                        <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-4">
+                            <p class="text-xs uppercase tracking-widest text-sky-100/70">Sunset</p>
+                            <p id="sunset" class="text-2xl font-light mt-1">—</p>
+                        </div>
+                        <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-4">
+                            <p class="text-xs uppercase tracking-widest text-sky-100/70">Visibility</p>
+                            <p id="visibility" class="text-2xl font-light mt-1">—</p>
+                        </div>
+                    </div>
+
+                    <p id="update-time" class="mt-6 text-sm text-sky-100/60 font-light">Open-Meteo · updated just now</p>
+                </div>
+            </div>
+
+            <!-- Side Card (Stats) -->
+            <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] flex flex-col justify-center gap-8">
+                <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                    <span class="text-sky-100/80 font-medium">Humidity</span>
+                    <span id="humidity" class="text-2xl font-semibold">64%</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                    <span class="text-sky-100/80 font-medium">UV Index</span>
+                    <span id="uv" class="text-2xl font-semibold">8 <span class="text-sm font-normal opacity-70 ml-1">Very High</span></span>
+                </div>
+                <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                    <span class="text-sky-100/80 font-medium">Wind</span>
+                    <span id="wind" class="text-2xl font-semibold">14 km/h</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sky-100/80 font-medium">Pressure</span>
+                    <span id="pressure" class="text-2xl font-semibold">1008 hPa</span>
+                </div>
+                <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-5 py-4 flex items-center space-x-3">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                    <p class="text-sm text-sky-100/80">Models refreshed via batch analytics</p>
+                </div>
+            </div>
+        </section>
+        <!-- ============ 7-Day Forecast ============ -->
+        <section id="forecast" class="mt-20 scroll-mt-28">
+            <div class="flex items-end justify-between mb-8">
+                <h3 class="text-3xl md:text-4xl font-light">7-Day <span class="font-bold text-sky-200">Forecast</span></h3>
+                <p class="hidden md:block text-sm text-sky-100/70 font-light">live API · refreshed hourly</p>
+            </div>
+            <div id="forecast-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                <!-- filled by app.js -->
+            </div>
+        </section>
+
+        <!-- ============ Live Radar ============ -->
+        <section id="radar" class="mt-20 scroll-mt-28">
+            <h3 class="text-3xl md:text-4xl font-light mb-8">Live <span class="font-bold text-sky-200">Radar</span></h3>
+            <div class="glass-card rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-10 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+
+                <div class="flex flex-col lg:flex-row items-center gap-10">
+
+                    <!-- Radar disc -->
+                    <div class="relative shrink-0 w-72 h-72 md:w-80 md:h-80 rounded-full bg-[#0b2439]/50 border border-white/25 overflow-hidden shadow-[inset_0_0_60px_rgba(0,0,0,0.45)]">
+                        <div class="absolute inset-0 rounded-full border border-white/20"></div>
+                        <div class="absolute inset-8 rounded-full border border-white/15"></div>
+                        <div class="absolute inset-16 rounded-full border border-white/10"></div>
+                        <div class="absolute inset-24 rounded-full border border-white/10"></div>
+                        <div class="absolute left-1/2 top-0 bottom-0 w-px bg-white/15"></div>
+                        <div class="absolute top-1/2 left-0 right-0 h-px bg-white/15"></div>
+                        <div class="radar-sweep"></div>
+
+                        <!-- echo blobs -->
+                        <div class="absolute top-[22%] left-[38%] w-5 h-5 rounded-full bg-cyan-300/80 blur-[2px] animate-pulse"></div>
+                        <div class="absolute top-[52%] left-[58%] w-7 h-7 rounded-full bg-cyan-300/60 blur-[3px] animate-pulse"></div>
+                        <div class="absolute top-[68%] left-[30%] w-4 h-4 rounded-full bg-amber-300/70 blur-[2px] animate-pulse"></div>
+                        <div class="absolute top-[40%] left-[66%] w-3 h-3 rounded-full bg-emerald-300/70 blur-[1px]"></div>
+                        <div class="absolute top-[78%] left-[62%] w-6 h-6 rounded-full bg-cyan-300/50 blur-[4px]"></div>
+
+                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] tracking-widest text-sky-100/60 font-mono">KHI · 240 KM</div>
+                    </div>
+
+                    <!-- Radar reading -->
+                    <div class="flex-1 text-center lg:text-left">
+                        <h4 class="text-2xl font-light mb-4">Karachi <span class="font-semibold">weather cell</span> tracking</h4>
+                        <p class="text-sky-100/85 leading-relaxed mb-6 font-light text-lg">
+                            Radar feeds stream into our HDFS pipeline every 5 minutes. Reflectivity maps are
+                            aggregated with MapReduce to detect storm cells, wind shear and precipitation bands
+                            before they reach populated areas.
+                        </p>
+                        <div class="inline-flex flex-col gap-3 text-left">
+                            <div class="flex items-center space-x-3 text-sm">
+                                <span class="w-3 h-3 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.9)]"></span>
+                                <span class="text-sky-100/80">Precipitation bands — inbound, light</span>
+                            </div>
+                            <div class="flex items-center space-x-3 text-sm">
+                                <span class="w-3 h-3 rounded-full bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.9)]"></span>
+                                <span class="text-sky-100/80">Convective cell — high cloud top</span>
+                            </div>
+                            <div class="flex items-center space-x-3 text-sm">
+                                <span class="w-3 h-3 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.9)]"></span>
+                                <span class="text-sky-100/80">Wind gust core — 28 km/h</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- ============ Climate Analytics Engine (Big Data Showcase) ============ -->
+        <section id="analytics" class="mt-20 w-full scroll-mt-28">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+                <!-- Left column: copy -->
+                <div class="glass-card p-8 rounded-[2rem] bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl">
+                    <h2 class="text-3xl md:text-4xl font-light text-white mb-6">
+                        Powered by <span class="font-bold text-sky-200">Big Data</span>
+                    </h2>
+                    <p class="text-sky-100/90 text-lg leading-relaxed mb-6">
+                        SkyCast doesn't just fetch simple APIs. Our architecture utilizes a simulated
+                        <strong class="text-white">Hadoop Distributed File System (HDFS)</strong> to ingest and
+                        process massive volumes of historical climate data.
+                    </p>
+                    <p class="text-sky-100/90 text-lg leading-relaxed mb-6">
+                        By leveraging MapReduce principles, we aggregate decades of atmospheric pressure and
+                        temperature patterns. This data trains our predictive models before syncing securely with
+                        our Flask API endpoints.
+                    </p>
+
+                    <!-- Cluster stats -->
+                    <div class="grid grid-cols-3 gap-4 mt-8">
+                        <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-4 py-4 text-center">
+                            <p class="text-3xl font-bold text-white">1.4</p>
+                            <p class="text-xs uppercase tracking-widest text-sky-100/60 mt-1">TB Dataset</p>
+                        </div>
+                        <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-4 py-4 text-center">
+                            <p class="text-3xl font-bold text-white">12</p>
+                            <p class="text-xs uppercase tracking-widest text-sky-100/60 mt-1">Datanodes</p>
+                        </div>
+                        <div class="glass-tile rounded-2xl bg-white/10 border border-white/15 px-4 py-4 text-center">
+                            <p class="text-3xl font-bold text-white">1.4k</p>
+                            <p class="text-xs uppercase tracking-widest text-sky-100/60 mt-1">MapReduce</p>
+                        </div>
+                    </div>
+
+                    <div class="inline-flex items-center space-x-2 bg-white/10 border border-white/20 px-4 py-2 rounded-full text-sm font-medium text-white shadow-inner mt-8">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Hadoop Cluster: Online</span>
+                    </div>
+                </div>
+
+                <!-- Right column: the wall — server terminal -->
+                <div class="relative overflow-hidden rounded-2xl bg-gray-900/80 backdrop-blur-xl border border-gray-700 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] flex flex-col font-mono text-sm md:text-base h-80 transition-transform duration-700 hover:scale-[1.02]">
+
+                    <div class="flex items-center px-4 py-3 bg-gray-900/90 border-b border-gray-700/50">
+                        <div class="flex space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
+                        </div>
+                        <div class="flex-1 text-center text-gray-500 text-xs font-medium tracking-wider">
+                            root@skycast-hdfs ~ -bash
+                        </div>
+                    </div>
+
+                    <div id="terminal-body" class="p-6 flex flex-col space-y-3 overflow-hidden text-gray-300">
+                        <div class="animate-log delay-1">
+                            <span class="text-gray-500">➜</span> <span class="text-blue-400">~</span> ./start_cluster.sh
+                        </div>
+                        <div class="animate-log delay-2">
+                            <span class="text-yellow-400">[SYSTEM]</span> Initiating Hadoop MapReduce daemon...
+                        </div>
+                        <div class="animate-log delay-3">
+                            <span class="text-cyan-400">[HDFS]</span> Mounting datanodes... syncing historical climate datasets (1.4TB).
+                        </div>
+                        <div class="animate-log delay-4">
+                            <span class="text-purple-400">[ANALYTICS]</span> Batch processing complete. Predictive model optimized.
+                        </div>
+                        <div class="animate-log delay-5">
+                            <span class="text-emerald-400">[FLASK]</span> Endpoints synced. API listening on port 5000...
+                        </div>
+
+                        <div id="term-cursor" class="animate-log delay-5 mt-2">
+                            <span class="inline-block w-2.5 h-5 bg-gray-400 cursor-blink"></span>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-0 w-full h-8 bg-gradient-to-t from-gray-900/80 to-transparent pointer-events-none"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============ Footer ============ -->
+    <footer class="mt-24 border-t border-white/15 py-10 text-center text-sm text-sky-100/70 font-light">
+        <p>SkyCast · Flask · Tailwind CSS v4 · Hadoop / HDFS Analytics Showcase</p>
+        <p class="mt-2">© <span id="year"></span> SkyCast — made for the sky, powered by data.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

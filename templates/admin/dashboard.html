@@ -1,0 +1,309 @@
+{% extends 'layout.html' %}
+{% block title %}Admin Console — SkyCast{% endblock %}
+{% block body_attrs %}data-stats-url="{{ url_for('admin.stats') }}" data-usage-url="{{ url_for('admin.usage') }}" data-users-url="{{ url_for('admin.users') }}" data-logs-url="{{ url_for('admin.logs') }}"{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .nav-link { display: flex; align-items: center; gap: .75rem; padding: .7rem 1rem; border-radius: 1rem; font-size: .875rem; font-weight: 500; color: rgba(224,242,254,.75); transition: background-color .2s ease, transform .2s ease; }
+  .nav-link:hover { background: rgba(255,255,255,.08); }
+  .nav-link.active { background: rgba(255,255,255,.18); color: #fff; }
+  .nav-link .dot { width: .5rem; height: .5rem; border-radius: 9999px; background: rgba(255,255,255,.25); transition: background .2s ease; }
+  .nav-link.active .dot { background: #7dd3fc; box-shadow: 0 0 10px rgba(125,211,252,.85); }
+  .toggle { appearance: none; width: 44px; height: 24px; border-radius: 9999px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); position: relative; cursor: pointer; transition: background .2s ease; flex-shrink: 0; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #e0f2fe; transition: transform .2s ease; }
+  .toggle:checked { background: #38bdf8; }
+  .toggle:checked::after { transform: translateX(20px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pt-24 md:pt-28 px-4 md:px-8 max-w-[1400px] mx-auto lg:flex lg:gap-10">
+    <aside id="sidebar" class="fixed top-0 left-0 z-40 h-screen w-72 max-w-[85vw] pt-20 px-4 pb-6 bg-slate-900/50 backdrop-blur-2xl border-r border-white/15 transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:static lg:h-auto lg:w-60 lg:shrink-0 lg:bg-transparent lg:backdrop-blur-0 lg:border-0 lg:pt-0 lg:px-0 lg:pb-0">
+        <nav class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] p-3 flex flex-col gap-1.5">
+            <p class="px-3 pt-2 pb-1 text-[10px] uppercase tracking-widest text-sky-100/50 font-semibold">Console</p>
+            <a href="#" data-section="analytics" class="nav-link active"><span class="dot"></span> Analytics</a>
+            <a href="#" data-section="users" class="nav-link"><span class="dot"></span> Users</a>
+            <a href="#" data-section="api-logs" class="nav-link"><span class="dot"></span> API Logs</a>
+            <a href="#" data-section="reports" class="nav-link"><span class="dot"></span> Reports</a>
+            <a href="#" data-section="settings" class="nav-link"><span class="dot"></span> Settings</a>
+             <a href="{{ url_for('admin.system_page') }}" class="nav-link"><span class="dot"></span> 🩺 System Health</a>
+             <a href="{{ url_for('admin_ext.command_center') }}" class="nav-link"><span class="dot"></span> 🛡️ Command Center</a>
+             <div class="mt-2 pt-4 border-t border-white/10 px-3 pb-1 text-[11px] text-sky-100/50 font-light">SkyCast Admin · v1.0</div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 min-w-0 pb-16">
+        <header class="mb-8 text-shadow-sm">
+            <h2 class="text-4xl md:text-5xl font-light">Admin <span class="font-bold">Console</span></h2>
+             <p class="mt-2 text-sky-100/90 font-light text-lg">Operations overview for the SkyCast cluster.</p>
+        </header>
+
+        <section id="section-analytics" class="admin-section">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+                    <div class="flex items-center justify-between"><p class="text-xs uppercase tracking-widest text-sky-100/80 font-medium">Total Users</p><span class="w-2 h-2 rounded-full bg-cyan-300 animate-pulse"></span></div>
+                    <div class="mt-4 flex items-end justify-between"><span id="stat-users" class="text-5xl font-light leading-none">—</span><span id="stat-users-delta" class="text-sm font-medium text-emerald-300">…</span></div>
+                    <p class="mt-3 text-xs text-sky-100/60 font-light">registered in the last 30 days</p>
+                </div>
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+                    <div class="flex items-center justify-between"><p class="text-xs uppercase tracking-widest text-sky-100/80 font-medium">API Calls Today</p><span class="w-2 h-2 rounded-full bg-violet-300 animate-pulse"></span></div>
+                    <div class="mt-4 flex items-end justify-between"><span id="stat-api" class="text-5xl font-light leading-none">—</span><span id="stat-api-delta" class="text-sm font-medium text-emerald-300">…</span></div>
+                    <p class="mt-3 text-xs text-sky-100/60 font-light">served by Flask + HDFS pipeline</p>
+                </div>
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+                    <div class="flex items-center justify-between"><p class="text-xs uppercase tracking-widest text-sky-100/80 font-medium">Live Data Ratio</p><span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span></div>
+                    <div class="mt-4 flex items-end justify-between"><span id="stat-cache" class="text-5xl font-light leading-none">—</span><span id="stat-cache-delta" class="text-sm font-medium text-emerald-300">…</span></div>
+                    <p class="mt-3 text-xs text-sky-100/60 font-light">live Open-Meteo responses served today</p>
+                </div>
+            </div>
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+                    <div class="flex items-center justify-between"><p class="text-xs uppercase tracking-widest text-sky-100/80 font-medium">Top City (7d)</p><span class="w-2 h-2 rounded-full bg-sky-300 animate-pulse"></span></div>
+                    <div class="mt-4"><span id="stat-top-city" class="text-3xl font-light leading-none">—</span></div>
+                    <p class="mt-3 text-xs text-sky-100/60 font-light">most searched city this week</p>
+                </div>
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+                    <div class="flex items-center justify-between"><p class="text-xs uppercase tracking-widest text-sky-100/80 font-medium">Errors Today</p><span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span></div>
+                    <div class="mt-4"><span id="stat-errors" class="text-5xl font-light leading-none">—</span></div>
+                    <p class="mt-3 text-xs text-sky-100/60 font-light">HTTP 5xx responses since midnight</p>
+                </div>
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+                    <div class="flex items-center justify-between"><p class="text-xs uppercase tracking-widest text-sky-100/80 font-medium">MongoDB Status</p><span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span></div>
+                    <div class="mt-4"><span id="stat-mongo" class="text-3xl font-light leading-none">Not configured</span></div>
+                    <p class="mt-3 text-xs text-sky-100/60 font-light">telemetry mirror / aggregation source</p>
+                </div>
+            </div>
+            <div class="mt-6 rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+                    <h3 class="text-2xl font-light">API Usage <span class="font-bold text-sky-200">Overview</span></h3>
+                    <span id="chart-subtitle" class="text-xs text-sky-100/70 font-light">last 24 hours · live</span>
+                </div>
+                <div class="relative h-80"><canvas id="usage-chart"></canvas></div>
+            </div>
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="rounded-[1.5rem] bg-white/5 border border-white/15 px-5 py-4 flex items-center space-x-3"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span><p class="text-sm text-sky-100/85">Datanodes <span class="font-semibold text-white">12/12</span> reporting</p></div>
+                <div class="rounded-[1.5rem] bg-white/5 border border-white/15 px-5 py-4 flex items-center space-x-3"><span class="w-2.5 h-2.5 rounded-full bg-cyan-300 shrink-0"></span><p class="text-sm text-sky-100/85">MapReduce jobs <span class="font-semibold text-white">1,482</span> completed</p></div>
+                <div class="rounded-[1.5rem] bg-white/5 border border-white/15 px-5 py-4 flex items-center space-x-3"><span class="w-2.5 h-2.5 rounded-full bg-indigo-300 shrink-0"></span><p class="text-sm text-sky-100/85">Dataset <span class="font-semibold text-white">1.4 TB</span> on HDFS</p></div>
+            </div>
+        </section>
+
+        <section id="section-users" class="admin-section hidden">
+            <div class="rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] overflow-hidden">
+                <div class="flex flex-wrap items-center justify-between gap-3 px-6 md:px-8 pt-6 md:pt-8">
+                    <h3 class="text-2xl font-light">Registered <span class="font-bold text-sky-200">Users</span></h3>
+                    <span class="text-xs text-sky-100/70 font-light">synced from the HDFS user-store <span id="role-msg" class="text-amber-200/90"></span></span>
+                </div>
+                <div class="mt-6 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-left text-[10px] uppercase tracking-widest text-sky-100/60 border-b border-white/10">
+                            <th class="px-6 md:px-8 py-3 font-medium">User</th>
+                            <th class="px-4 py-3 font-medium">Activity</th>
+                            <th class="px-4 py-3 font-medium">Status</th>
+                            <th class="px-4 py-3 font-medium">Role</th>
+                            <th class="px-6 md:px-8 py-3 font-medium hidden md:table-cell">Joined</th>
+                        </tr></thead>
+                        <tbody id="users-tbody" class="text-sky-100/90">
+                            <tr><td class="px-6 md:px-8 py-4 text-sky-100/60" colspan="5">Loading users…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-6 md:px-8 py-5 border-t border-white/10 text-xs text-sky-100/60 font-light">Showing 4 of <span class="text-sky-200 font-medium">12,847</span> registered users</div>
+            </div>
+        </section>
+
+        <section id="section-api-logs" class="admin-section hidden">
+            <h3 class="text-2xl font-light mb-6">API <span class="font-bold text-sky-200">Logs</span></h3>
+            <div class="relative overflow-hidden rounded-[2rem] bg-gray-900/60 backdrop-blur-xl border border-gray-700 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]">
+                <div class="flex items-center px-5 py-3 bg-gray-900/70 border-b border-gray-700/50">
+                    <div class="flex space-x-2"><span class="w-3 h-3 rounded-full bg-red-500"></span><span class="w-3 h-3 rounded-full bg-yellow-500"></span><span class="w-3 h-3 rounded-full bg-green-500"></span></div>
+                    <div class="flex-1 text-center text-gray-500 text-xs font-medium tracking-wider">skycast-hdfs · api-gateway — live</div>
+                </div>
+                <div class="p-6 font-mono text-xs md:text-sm text-gray-300 flex flex-col space-y-2.5" id="api-log-lines">
+                    <div class="text-gray-500">Loading live API log…</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-reports" class="admin-section hidden">
+            <h3 class="text-2xl font-light mb-6">Climate <span class="font-bold text-sky-200">Reports</span></h3>
+            <div class="rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-light mb-1">Daily System Analytics</h4>
+                        <p class="text-sm text-sky-100/70 font-light mb-4">Export current weather, API usage and cluster metrics as PDF.</p>
+                        <a href="{{ url_for('admin.report_pdf') }}" class="inline-flex items-center gap-2 rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-6 py-3 text-sm font-medium transition-all">
+                            <span>📄</span> Download PDF Report
+                        </a>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-light mb-1">Cache Telemetry</h4>
+                        <p class="text-sm text-sky-100/70 font-light mb-4">Live cache hit ratio and eviction counters.</p>
+                        <div class="rounded-2xl bg-white/10 border border-white/15 p-5">
+                            <div class="flex justify-between mb-2"><span class="text-sky-100/80 text-sm">Hit Ratio</span><span id="cache-hit" class="text-white font-semibold">87.4%</span></div>
+                            <div class="flex justify-between mb-2"><span class="text-sky-100/80 text-sm">Evictions</span><span class="text-white font-semibold">1,204</span></div>
+                            <div class="flex justify-between"><span class="text-sky-100/80 text-sm">Avg Latency</span><span class="text-white font-semibold">12 ms</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-settings" class="admin-section hidden">
+            <h3 class="text-2xl font-light mb-6">Cluster <span class="font-bold text-sky-200">Settings</span></h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+                    <h4 class="text-lg font-light mb-1">Preferences</h4>
+                    <p class="text-sm text-sky-100/70 font-light mb-6">Toggle live behaviour for the SkyCast backend.</p>
+                    <div class="flex flex-col gap-5">
+                        <label class="flex items-center justify-between cursor-pointer gap-4"><span class="text-sm text-sky-100/85">Auto-refresh weather cache (60s)</span><input type="checkbox" class="toggle" checked></label>
+                        <label class="flex items-center justify-between cursor-pointer gap-4"><span class="text-sm text-sky-100/85">Aggregate radar feeds via MapReduce</span><input type="checkbox" class="toggle" checked></label>
+                        <label class="flex items-center justify-between cursor-pointer gap-4"><span class="text-sm text-sky-100/85">Email alerts on anomaly flags</span><input type="checkbox" class="toggle"></label>
+                        <label class="flex items-center justify-between cursor-pointer gap-4"><span class="text-sm text-sky-100/85">Maintenance mode (read-only API)</span><input type="checkbox" class="toggle"></label>
+                    </div>
+                </div>
+                <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+                    <h4 class="text-lg font-light mb-1">Pipeline</h4>
+                    <p class="text-sm text-sky-100/70 font-light mb-6">Batch parameters for the HDFS climate analytics job.</p>
+                    <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Replication Factor</label>
+                    <input type="number" value="3" min="1" max="5" class="w-full rounded-2xl bg-white/10 border border-white/25 px-5 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40 mb-5">
+                    <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Daily Batch Window (UTC)</label>
+                    <input type="text" value="02:00 → 04:30" class="w-full rounded-2xl bg-white/10 border border-white/25 px-5 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/40 mb-6">
+                    <div class="flex flex-wrap gap-3">
+                        <button class="rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-6 py-2.5 text-sm font-medium transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)]">Save Changes</button>
+                        <button class="rounded-full bg-emerald-400/20 hover:bg-emerald-400/30 border border-emerald-300/30 px-6 py-2.5 text-sm font-medium text-emerald-200 transition-all">Restart Cluster</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<footer class="mt-16 mb-4 text-center text-sm text-sky-100/60 font-light">
+    SkyCast Admin · Flask · Hadoop / HDFS · Tailwind CSS v4
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  var sidebar = $("#sidebar");
+  var menuBtn = document.getElementById("menu-btn");
+  var SECTIONS = ["analytics", "users", "api-logs", "reports", "settings"];
+  if (menuBtn && sidebar) { menuBtn.addEventListener("click", function () { sidebar.classList.toggle("-translate-x-full"); }); }
+  function closeDrawer() { if (sidebar && window.innerWidth < 1024) sidebar.classList.add("-translate-x-full"); }
+  var links = $$(".nav-link");
+  function showSection(name) {
+    SECTIONS.forEach(function (k) { var el = $("#section-" + k); if (el) el.classList.add("hidden"); });
+    var target = $("#section-" + name); if (target) target.classList.remove("hidden");
+    links.forEach(function (l) { l.classList.toggle("active", l.getAttribute("data-section") === name); });
+    closeDrawer();
+  }
+  links.forEach(function (l) {
+    l.addEventListener("click", function (e) {
+      var sec = l.getAttribute("data-section");
+      if (sec) {
+        e.preventDefault();
+        showSection(sec);
+      }
+      // links without data-section (System Health, Command Center) navigate normally
+    });
+  });
+  function fetchJSON(url, fallback) { return fetch(url).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).catch(function () { return fallback(); }); }
+  function fmt(n) { return Number(n).toLocaleString("en-US"); }
+  function hourLabels() { var out = [], now = new Date(), t; for (var i = 23; i >= 0; i--) { t = new Date(now.getTime() - i * 3600000); out.push(("0" + t.getHours()).slice(-2) + ":00"); } return out; }
+  var FALLBACK_STATS = { total_users: "—", total_users_delta: "", api_calls_today: "—", api_calls_delta: "", cache_hit_ratio: "—", cache_hit_delta: "" };
+  fetchJSON(document.body.getAttribute("data-stats-url"), function () { return FALLBACK_STATS; }).then(function (s) {
+    var u = $("#stat-users"); if (u) u.textContent = fmt(s.total_users);
+    var d = $("#stat-users-delta"); if (d) d.textContent = s.total_users_delta;
+    var a = $("#stat-api"); if (a) a.textContent = fmt(s.api_calls_today);
+    var ad = $("#stat-api-delta"); if (ad) ad.textContent = s.api_calls_delta;
+    var c = $("#stat-cache"); if (c) c.textContent = s.cache_hit_ratio;
+    var cd = $("#stat-cache-delta"); if (cd) cd.textContent = s.cache_hit_delta;
+  });
+  // Unified dashboard summary — total users, requests today, top city, errors, Mongo status
+  fetchJSON("/admin/api/admin/dashboard-summary", function () { return { summary: { total_users: "—", requests_today: "—", top_city: "—", system_errors_today: "—", mongo_status: "Not configured" } }; }).then(function (r) {
+    var s = r.summary || {};
+    var u = $("#stat-users"); if (u && s.total_users != null) u.textContent = fmt(s.total_users);
+    var a = $("#stat-api"); if (a && s.requests_today != null) a.textContent = fmt(s.requests_today);
+    var top = $("#stat-top-city"); if (top && (s.top_city || s.top_endpoint)) top.textContent = s.top_city || s.top_endpoint;
+    var err = $("#stat-errors"); if (err && s.system_errors_today != null) err.textContent = fmt(s.system_errors_today);
+    var mongo = $("#stat-mongo"); if (mongo && s.mongo_status) {
+      mongo.textContent = s.mongo_status;
+      mongo.className = "text-xs mt-1 " + (s.mongo_status === "Healthy" ? "text-emerald-300" : "text-amber-300");
+    }
+  });
+  // Live registered-users table (real SQLite rows)
+  function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : String(t); return d.innerHTML; }
+  function roleOpts(current, extra) {
+    return [
+      { v: "user", l: "User" },
+      { v: "analyst", l: "Analyst" },
+      { v: "admin", l: "Admin" },
+    ].filter(function (o) { return extra[o.v]; }).map(function (o) {
+      return '<option value="' + o.v + '"' + (current === o.v ? " selected" : "") + '>' + o.l + '</option>';
+    }).join("");
+  }
+  function setUserRole(id, sel) {
+    var prev = sel.getAttribute("data-role");
+    var next = sel.value;
+    if (next === prev) return;
+    sel.disabled = true;
+    var msg = $("#role-msg");
+    if (msg) msg.textContent = "Updating…";
+    fetch("/admin/api/users/" + id + "/role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: next }),
+    }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (d) {
+        sel.setAttribute("data-role", next);
+        if (msg) msg.textContent = (d.message || ("Role updated to " + next)) + ".";
+      })
+      .catch(function (err) {
+        sel.value = prev;
+        if (msg) msg.textContent = (err.message || "Something went wrong") + " — role not changed.";
+      })
+      .finally(function () { sel.disabled = false; });
+  }
+  fetchJSON(document.body.getAttribute("data-users-url"), function () { return { users: [] }; }).then(function (r) {
+    var tbody = $("#users-tbody"); if (!tbody) return;
+    var users = r.users || [];
+    var msg = $("#role-msg"); if (msg) msg.textContent = "";
+    if (!users.length) { tbody.innerHTML = '<tr><td class="px-6 md:px-8 py-4 text-sky-100/60" colspan="5">No registered users yet.</td></tr>'; return; }
+    tbody.innerHTML = users.map(function (u) {
+      var role = u.role || "user";
+      return '<tr class="border-b border-white/5 hover:bg-white/5 transition-colors">'
+        + '<td class="px-6 md:px-8 py-4"><div class="font-medium text-white">' + esc(u.name) + '</div><div class="text-xs text-sky-100/60">' + esc(u.email) + '</div></td>'
+        + '<td class="px-4 py-4 text-xs text-sky-100/80">' + fmt(u.alerts) + ' alert' + (u.alerts === 1 ? "" : "s") + ' · ' + fmt(u.api_keys) + ' key' + (u.api_keys === 1 ? "" : "s") + '</td>'
+        + '<td class="px-4 py-4"><span class="inline-flex items-center space-x-1.5 text-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Active</span></td>'
+        + '<td class="px-4 py-4"><select data-id="' + u.id + '" data-role="' + role + '" onchange="setUserRole(' + u.id + ', this)" class="role-select w-28 rounded-xl border border-white/20 bg-white/10 px-2 py-1 text-xs text-white outline-none focus:border-sky-200/70 focus:bg-white/15 focus:ring-2 focus:ring-sky-200/30">' + roleOpts(role, { user: true, analyst: true, admin: true }) + '</select></td>'
+        + '<td class="px-6 md:px-8 py-4 text-sky-100/70 hidden md:table-cell">' + esc(u.joined) + '</td>'
+        + '</tr>';
+    }).join("");
+  });
+  // Live API log terminal (real request telemetry)
+  function renderLogs(r) {
+    var box = $("#api-log-lines"); if (!box) return;
+    var logs = r.logs || [];
+    if (!logs.length) { box.innerHTML = '<div class="text-gray-500">No API traffic logged yet — visit /api/weather to generate some.</div>'; return; }
+    box.innerHTML = logs.map(function (l) {
+      var color = l.status >= 500 ? "text-rose-400" : l.status >= 400 ? "text-yellow-400" : "text-emerald-400";
+      var tag = l.path && l.path.indexOf("/admin") === 0 ? "text-cyan-400" : "text-emerald-400";
+      return '<div><span class="text-gray-500">' + esc(l.time) + '</span> <span class="' + tag + '">[FLASK]</span> ' + esc(l.method) + " " + esc(l.path + (l.city ? "?city=" + l.city : "")) + ' <span class="' + color + '">→ ' + esc(l.status) + '</span> · ' + esc(l.duration_ms != null ? l.duration_ms + "ms" : "—") + (l.live === 1 ? ' <span class="text-sky-300">live</span>' : "") + '</div>';
+    }).join("");
+  }
+  fetchJSON(document.body.getAttribute("data-logs-url"), function () { return { logs: [] }; }).then(renderLogs);
+  setInterval(function () { fetchJSON(document.body.getAttribute("data-logs-url"), function () { return { logs: [] }; }).then(renderLogs); }, 15000);
+  var FALLBACK_USAGE = { labels: hourLabels(), values: [420, 380, 340, 310, 290, 300, 350, 520, 980, 2100, 3400, 2900, 2600, 2300, 2100, 2400, 3200, 4100, 4300, 3800, 3000, 2200, 1500, 850] };
+  function renderChart(u) {
+    var canvas = $("#usage-chart"); if (!canvas || typeof Chart === "undefined") return;
+    var ctx = canvas.getContext("2d"); var grad = ctx.createLinearGradient(0, 0, 0, 360);
+    grad.addColorStop(0, "rgba(125, 211, 252, 0.35)"); grad.addColorStop(1, "rgba(129, 140, 248, 0.03)");
+    new Chart(ctx, { type: "line", data: { labels: u.labels, datasets: [{ label: "Requests / hr", data: u.values, borderColor: "rgba(125, 211, 252, 0.95)", backgroundColor: grad, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: "#e0f2fe", pointHoverBorderColor: "rgba(15, 23, 42, 0.8)" }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { labels: { color: "rgba(224, 242, 254, 0.75)", font: { family: "Inter, sans-serif", size: 12 } }, align: "end" }, tooltip: { backgroundColor: "rgba(15, 23, 42, 0.92)", borderColor: "rgba(255, 255, 255, 0.15)", borderWidth: 1, titleColor: "#e0f2fe", bodyColor: "#bae6fd", padding: 12, cornerRadius: 12, displayColors: false } }, scales: { x: { ticks: { color: "rgba(224, 242, 254, 0.55)", maxTicksLimit: 12, font: { family: "Inter" } }, grid: { color: "rgba(255, 255, 255, 0.06)" } }, y: { beginAtZero: true, ticks: { color: "rgba(224, 242, 254, 0.55)", callback: function (v) { return fmt(v); }, font: { family: "Inter" } }, grid: { color: "rgba(255, 255, 255, 0.06)" } } } } });
+  }
+  fetchJSON(document.body.getAttribute("data-usage-url"), function () { return FALLBACK_USAGE; }).then(function (u) { renderChart(u); var sub = $("#chart-subtitle"); if (sub) sub.textContent = "last 24 hours · live from Flask"; });
+  showSection("analytics");
+})();
+</script>
+{% endblock %}

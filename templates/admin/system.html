@@ -1,0 +1,231 @@
+{% extends 'layout.html' %}
+{% block title %}System Health — SkyCast Admin{% endblock %}
+{% block head %}
+<style>
+  .cmd-card { position: relative; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .cmd-card:hover { transform: translateY(-3px); border-color: rgba(125,211,252,.45); box-shadow: 0 18px 50px -12px rgba(56,189,248,.28), 0 8px 32px 0 rgba(31,38,135,.15); }
+  .node-tile { transition: transform .15s ease, border-color .2s ease, background-color .2s ease; }
+  .node-tile:hover { transform: translateY(-2px); }
+  .spinner { width: 14px; height: 14px; border-radius: 999px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 flex flex-wrap items-end justify-between gap-4 text-shadow-sm">
+    <div>
+        <h2 class="text-4xl md:text-5xl font-light">System <span class="font-bold">Health</span></h2>
+        <p class="mt-2 text-sky-100/90 font-light text-lg">Live cluster telemetry — database latency, API failure rates and the HDFS datanode fabric.</p>
+    </div>
+    <div class="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-2 text-xs text-sky-100/80 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+        <span id="refresh-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Last check <span id="last-refresh">—</span> · auto-refresh 10s
+    </div>
+</header>
+
+<!-- ============ OVERALL STATUS ============ -->
+<div id="health-status" class="relative overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] mb-6">
+    <div id="status-accent" class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-cyan-300 to-sky-400"></div>
+    <div class="relative p-6 md:p-7 flex flex-wrap items-center justify-between gap-5">
+        <div class="flex items-center gap-4">
+            <span id="status-icon" class="grid place-items-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400/25 to-cyan-500/25 border border-white/15 text-2xl shadow-inner">🩺</span>
+            <div>
+                <p id="health-label" class="text-2xl md:text-3xl font-light leading-tight">Checking cluster…</p>
+                <p class="text-sm text-sky-100/70 font-light mt-1.5"><span id="health-uptime">uptime —</span> · <span id="engine-label">engine —</span></p>
+            </div>
+        </div>
+        <button id="check-btn" onclick="window.runCheck()" class="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-slate-900/20">
+            <span id="check-spinner" class="spinner hidden"></span>
+            <span id="check-label">🔄 Run check now</span>
+        </button>
+    </div>
+</div>
+
+<!-- ============ METRIC CARDS ============ -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 items-stretch">
+    <div class="cmd-card relative overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] flex flex-col">
+        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-sky-400 to-indigo-400"></div>
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="grid place-items-center w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400/25 to-indigo-500/25 border border-white/15 text-lg shadow-inner">🗄️</span>
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-sky-100/70 font-medium">Database</p>
+                    <p class="text-[11px] text-sky-100/50 font-light">timed live query</p>
+                </div>
+            </div>
+            <span id="db-status-pill" class="shrink-0 rounded-full bg-emerald-400/15 border border-emerald-300/25 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">Healthy</span>
+        </div>
+        <p class="mt-5 text-4xl font-light leading-none"><span id="db-latency">—</span><span class="text-xl text-sky-100/60 font-light"> ms</span></p>
+        <p id="db-engine" class="mt-3 text-xs text-sky-100/60 font-light">engine: SQLite (WAL-ready)</p>
+    </div>
+
+    <div class="cmd-card relative overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] flex flex-col">
+        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 to-cyan-400"></div>
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="grid place-items-center w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400/25 to-cyan-500/25 border border-white/15 text-lg shadow-inner">🌐</span>
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-sky-100/70 font-medium">API Failure Rate</p>
+                    <p class="text-[11px] text-sky-100/50 font-light">last 24 hours</p>
+                </div>
+            </div>
+            <span id="api-status-pill" class="shrink-0 rounded-full bg-emerald-400/15 border border-emerald-300/25 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">Healthy</span>
+        </div>
+        <p class="mt-5 text-4xl font-light leading-none"><span id="api-failure">—</span><span class="text-xl text-sky-100/60 font-light"> %</span></p>
+        <p id="api-requests" class="mt-3 text-xs text-sky-100/60 font-light">— requests · limit 60/min</p>
+    </div>
+
+    <div class="cmd-card relative overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] flex flex-col">
+        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-400 to-fuchsia-400"></div>
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="grid place-items-center w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-400/25 to-fuchsia-500/25 border border-white/15 text-lg shadow-inner">💾</span>
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-sky-100/70 font-medium">HDFS Datanodes</p>
+                    <p class="text-[11px] text-sky-100/50 font-light">cluster fabric</p>
+                </div>
+            </div>
+            <span id="hdfs-status-pill" class="shrink-0 rounded-full bg-emerald-400/15 border border-emerald-300/25 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">Healthy</span>
+        </div>
+        <p id="hdfs-nodes" class="mt-5 text-4xl font-light leading-none">—</p>
+        <p id="hdfs-replication" class="mt-3 text-xs text-sky-100/60 font-light">replication factor 3</p>
+    </div>
+</div>
+
+<!-- ============ DATANODE FABRIC ============ -->
+<div class="cmd-card relative overflow-hidden rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+    <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400"></div>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3.5">
+            <span class="grid place-items-center w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-400/25 to-indigo-500/25 border border-white/15 text-xl shadow-inner">🗄️</span>
+            <div>
+                <h3 class="text-lg font-semibold leading-tight">Datanode <span class="font-bold text-sky-200">Fabric</span></h3>
+                <p class="text-xs text-sky-100/60 font-light mt-0.5">HDFS cluster · replication factor 3</p>
+            </div>
+        </div>
+        <span id="node-count-badge" class="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/15 px-2.5 py-1 text-[10px] uppercase tracking-widest text-sky-100/60 shrink-0">0 / 0 online</span>
+    </div>
+    <div class="mt-6 flex items-center gap-5 text-[11px] text-sky-100/60">
+        <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>Healthy</span>
+        <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span>Degraded</span>
+    </div>
+    <div id="node-grid" class="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <p class="text-sky-100/60 text-sm">Loading nodes…</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+  var esc = function (s) { return String(s == null ? "" : s).replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+  function fmtUptime(s) {
+    if (s < 90) return Math.round(s) + " seconds";
+    if (s < 5400) return Math.round(s / 60) + " minutes";
+    if (s < 172800) return Math.round(s / 3600) + " hours";
+    return Math.round(s / 86400) + " days";
+  }
+  function setPill(id, text, ok) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = "shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider " +
+      (ok ? "bg-emerald-400/15 border-emerald-300/25 text-emerald-300" : "bg-amber-400/15 border-amber-300/25 text-amber-300");
+  }
+  function renderNodes(nodes) {
+    var grid = document.getElementById("node-grid");
+    if (!grid) return;
+    if (!nodes || !nodes.length) { grid.innerHTML = '<p class="text-sky-100/60 text-sm">No datanodes reported.</p>'; return; }
+    grid.innerHTML = nodes.map(function (n) {
+      var ok = n.status === "healthy";
+      var disk = Number(n.disk_used_pct) || 0;
+      var bar = disk >= 90 ? "bg-rose-400" : disk >= 75 ? "bg-amber-400" : "bg-emerald-400";
+      return '<div class="node-tile rounded-xl border p-3 ' + (ok ? "bg-emerald-400/5 border-emerald-300/20" : "bg-amber-400/10 border-amber-300/30") + '">'
+        + '<div class="flex items-center justify-between">'
+        + '<p class="text-[10px] font-mono text-sky-100/70">' + esc(n.id) + '</p>'
+        + '<span class="text-[9px] font-bold uppercase tracking-wider rounded-full px-1.5 py-0.5 ' + (ok ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/20 text-amber-300") + '">' + (ok ? "ok" : "warn") + '</span>'
+        + '</div>'
+        + '<div class="mt-2 h-1.5 w-full rounded-full bg-white/10 overflow-hidden">'
+        + '<div class="h-full rounded-full ' + bar + '" style="width:' + disk + '%"></div></div>'
+        + '<p class="mt-1.5 text-[10px] text-sky-100/60">disk ' + disk.toFixed(1) + '%</p>'
+        + '</div>';
+    }).join("");
+  }
+  function render(d) {
+    var healthy = d.status === "healthy";
+    var accent = document.getElementById("status-accent");
+    if (accent) accent.className = "absolute top-0 inset-x-0 h-1 bg-gradient-to-r " + (healthy ? "from-emerald-400 via-cyan-300 to-sky-400" : "from-amber-400 via-orange-400 to-rose-400");
+    var icon = document.getElementById("status-icon");
+    if (icon) {
+      icon.textContent = healthy ? "🩺" : "⚠️";
+      icon.className = "grid place-items-center w-14 h-14 rounded-2xl border border-white/15 text-2xl shadow-inner bg-gradient-to-br " + (healthy ? "from-emerald-400/25 to-cyan-500/25" : "from-amber-400/25 to-rose-500/25");
+    }
+    var label = document.getElementById("health-label");
+    if (label) label.innerHTML = healthy ? 'All systems <span class="font-bold text-emerald-300">operational</span>' : 'Cluster <span class="font-bold text-amber-300">degraded</span>';
+    var up = document.getElementById("health-uptime");
+    if (up) up.textContent = "uptime " + fmtUptime(d.uptime_seconds || 0);
+    var eng = document.getElementById("engine-label");
+    var dbEngine = (d.database && d.database.engine) || "SQLite (WAL-ready)";
+    if (eng) eng.textContent = "engine " + dbEngine;
+
+    var dbOk = d.database && d.database.status === "healthy";
+    setPill("db-status-pill", dbOk ? "Healthy" : "Slow", dbOk);
+    var dl = document.getElementById("db-latency");
+    if (dl) dl.textContent = d.database && d.database.latency_ms != null ? d.database.latency_ms : "—";
+    var dbe = document.getElementById("db-engine");
+    if (dbe) dbe.textContent = "engine " + dbEngine;
+
+    var fail = d.api ? d.api.failure_rate_pct : null;
+    setPill("api-status-pill", fail != null && fail >= 10 ? "Elevated" : "Healthy", fail == null || fail < 10);
+    var af = document.getElementById("api-failure");
+    if (af) af.textContent = fail != null ? fail : "—";
+    var ar = document.getElementById("api-requests");
+    if (ar) {
+      var reqs = d.api && d.api.requests_24h != null ? d.api.requests_24h.toLocaleString() : "—";
+      var failed = d.api && d.api.failed_24h != null ? d.api.failed_24h : 0;
+      var limit = d.api && d.api.rate_limit_per_min != null ? d.api.rate_limit_per_min : 60;
+      ar.innerHTML = reqs + " requests · <span class=\"text-rose-300\">" + failed + " failed</span> · limit " + limit + "/min";
+    }
+
+    var hOk = d.hdfs && d.hdfs.datanodes_healthy >= 11;
+    setPill("hdfs-status-pill", hOk ? "Healthy" : "Degraded", hOk);
+    var hn = document.getElementById("hdfs-nodes");
+    if (hn) hn.innerHTML = (d.hdfs ? d.hdfs.datanodes_healthy : "—") + ' <span class="text-xl text-sky-100/60">/</span> ' + (d.hdfs ? d.hdfs.datanodes_total : "—");
+    var hr = document.getElementById("hdfs-replication");
+    if (hr) hr.textContent = "replication factor " + (d.hdfs && d.hdfs.replication_factor != null ? d.hdfs.replication_factor : 3);
+
+    renderNodes(d.hdfs && d.hdfs.nodes || []);
+    var badge = document.getElementById("node-count-badge");
+    if (badge && d.hdfs) badge.textContent = d.hdfs.datanodes_healthy + " / " + d.hdfs.datanodes_total + " online";
+
+    var lr = document.getElementById("last-refresh");
+    if (lr) {
+      var gt = d.generated_at || "";
+      lr.textContent = gt.length >= 19 ? gt.slice(11, 19) : (gt || "—");
+    }
+  }
+  function load() {
+    return fetch("{{ url_for('admin.system_health') }}")
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function () {});
+  }
+  window.runCheck = function () {
+    var btn = document.getElementById("check-btn");
+    var sp = document.getElementById("check-spinner");
+    var lbl = document.getElementById("check-label");
+    if (btn) btn.disabled = true;
+    if (sp) sp.classList.remove("hidden");
+    if (lbl) lbl.textContent = "Checking…";
+    load().finally(function () {
+      if (btn) btn.disabled = false;
+      if (sp) sp.classList.add("hidden");
+      if (lbl) lbl.textContent = "🔄 Run check now";
+    });
+  };
+  load();
+  setInterval(load, 10000);
+})();
+</script>
+{% endblock %}

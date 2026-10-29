@@ -1,0 +1,59 @@
+{% extends 'layout.html' %}
+{% block title %}Event Planner — SkyCast{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .verdict-Excellent { color:#34d399; } .verdict-Good { color:#7dd3fc; }
+  .verdict-Marginal { color:#fbbf24; } .verdict-Poor { color:#f43f5e; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Event <span class="font-bold">Planner</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Score outdoor-event feasibility (1–10) for each candidate day using wind, precipitation, cloud cover and heat.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] self-start">
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Event Type</label>
+        <select id="planner-event" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            {% for e in events %}<option value="{{ e.label|lower }}">{{ e.label }}</option>{% endfor %}
+        </select>
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">City</label>
+        <select id="planner-city" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-white/40 [&>option]:text-slate-900">
+            {% for c in cities %}<option value="{{ c }}">{{ c|title }}</option>{% endfor %}
+        </select>
+        <label class="block text-xs uppercase tracking-widest text-sky-100/70 font-medium mb-2">Days Ahead</label>
+        <input id="planner-days" type="number" min="1" max="14" value="7" class="glass-select w-full rounded-2xl bg-white/10 border border-white/25 text-white px-5 py-3 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-white/40">
+        <button id="planner-run" class="btn-brand w-full rounded-full bg-white/20 hover:bg-white/30 border border-white/30 px-6 py-3 text-sm font-medium transition-all">Plan Event</button>
+        <div id="planner-best" class="mt-6 rounded-2xl bg-white/10 border border-white/15 p-5 text-center hidden">
+            <p class="text-xs uppercase tracking-widest text-sky-100/70">Best Day</p>
+            <p id="planner-best-day" class="text-xl font-light mt-1">—</p>
+            <p id="planner-best-score" class="text-sm text-sky-100/80">—</p>
+        </div>
+    </div>
+
+    <div class="lg:col-span-3 flex flex-col gap-6">
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
+            <h3 class="text-2xl font-light mb-5">Feasibility <span class="font-bold text-sky-200">Score</span></h3>
+            <div class="relative h-72"><canvas id="planner-chart"></canvas></div>
+        </div>
+        <div class="glass-card rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead><tr class="text-left text-[10px] uppercase tracking-widest text-sky-100/60 border-b border-white/10">
+                    <th class="py-3 pr-4 font-medium">Date</th><th class="py-3 pr-4 font-medium">Condition</th>
+                    <th class="py-3 pr-4 font-medium">High / Low</th><th class="py-3 pr-4 font-medium">Rain %</th>
+                    <th class="py-3 pr-4 font-medium">Wind</th><th class="py-3 pr-4 font-medium">Score</th>
+                    <th class="py-3 font-medium">Verdict</th>
+                </tr></thead>
+                <tbody id="planner-rows" class="text-sky-100/90"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/planner.js') }}"></script>
+{% endblock %}

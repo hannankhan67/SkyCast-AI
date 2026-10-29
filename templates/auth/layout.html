@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SkyCast — Sign in{% endblock %}</title>
+  <meta name="description" content="Sign in to SkyCast — live weather, radar maps and climate analytics.">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/logo.svg') }}">
+
+  <!-- Tailwind CSS v4 (Play CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+  </style>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  {% block head %}{% endblock %}
+</head>
+
+<body class="min-h-screen text-white font-sans antialiased selection:bg-white/30 selection:text-white overflow-x-hidden">
+  <!-- Breathing sky covers the whole viewport -->
+  <div class="animate-sky fixed inset-0 -z-20"></div>
+
+  <div class="min-h-screen md:grid md:grid-cols-2">
+
+    <!-- ============================================================
+         LEFT PANEL — brand / story (hidden on small screens)
+         ============================================================ -->
+    <section class="relative hidden md:flex flex-col justify-between overflow-hidden p-12 xl:p-16">
+      {% include 'partials/clouds.html' %}
+
+      <a href="{{ url_for('index') }}" class="relative flex items-center space-x-3">
+        <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="SkyCast" class="w-11 h-11 drop-shadow-lg">
+        <span class="text-3xl font-bold tracking-wider">
+          <span class="text-white">SkyCast</span>
+        </span>
+      </a>
+
+      <div class="relative">
+        <h2 class="text-5xl xl:text-6xl font-extrabold leading-tight drop-shadow-xl">
+          Your sky,<br>decoded.
+        </h2>
+        <p class="mt-5 max-w-md text-lg font-light text-sky-50/90 leading-relaxed">
+          Live forecasts, radar maps and a big-data climate engine — all in one
+          beautifully calm dashboard.
+        </p>
+
+        <ul class="mt-10 space-y-4 text-sm">
+          <li class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center shadow-lg">🌍</span>
+            <span class="text-sky-50/90 font-light">Live data from 6 major cities, zero API keys</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center shadow-lg">📊</span>
+            <span class="text-sky-50/90 font-light">Hadoop / HDFS climate analytics showcase</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center shadow-lg">☁️</span>
+            <span class="text-sky-50/90 font-light">Your saved cities, synced to your account</span>
+          </li>
+        </ul>
+      </div>
+
+      <p class="relative text-xs text-sky-100/60 font-light">
+        © <span>2026</span> SkyCast — made for the sky, powered by data.
+      </p>
+    </section>
+
+    <!-- ============================================================
+         RIGHT PANEL — the form
+         ============================================================ -->
+    <section class="relative flex items-center justify-center min-h-screen p-6 md:p-12">
+      {% include 'partials/clouds.html' %}
+
+      <div class="relative w-full max-w-md">
+
+        <!-- Compact brand for mobile (left panel is hidden) -->
+        <a href="{{ url_for('index') }}" class="md:hidden flex items-center justify-center space-x-3 mb-8">
+          <img src="{{ url_for('static', filename='icons/logo.svg') }}" alt="SkyCast" class="w-10 h-10 drop-shadow-lg">
+          <span class="text-2xl font-bold tracking-wider">
+            <span class="text-white">SkyCast</span>
+          </span>
+        </a>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="space-y-2 mb-5" role="alert">
+              {% for category, message in messages %}
+                {% if category != 'dev-code' %}
+                  <div class="flex items-start gap-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed backdrop-blur-md shadow-lg
+                    {{ 'border-red-200/40 bg-red-500/25 text-red-50' if category == 'error'
+                        else 'border-emerald-200/40 bg-emerald-500/25 text-emerald-50' if category == 'success'
+                        else 'border-amber-200/40 bg-amber-500/25 text-amber-50' }}">
+                    <span aria-hidden="true">{{ '✕' if category == 'error' else '✓' if category == 'success' else '⚠' }}</span>
+                    <span>{{ message }}</span>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block form %}{% endblock %}
+      </div>
+    </section>
+  </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

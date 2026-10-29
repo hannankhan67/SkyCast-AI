@@ -1,0 +1,105 @@
+{% extends 'layout.html' %}
+{% block title %}Agriculture Insights — SkyCast{% endblock %}
+{% block head %}
+<style>
+    :root {
+        --ag-low: 16, 185, 129;
+        --ag-med: 251, 191, 36;
+        --ag-high: 239, 68, 68;
+    }
+    [data-frost="Low"]    { color: rgb(var(--ag-low));    background: rgba(var(--ag-low),0.12); }
+    [data-frost="Moderate"] { color: rgb(var(--ag-med));  background: rgba(var(--ag-med),0.12); }
+    [data-frost="High"]   { color: rgb(var(--ag-high));   background: rgba(var(--ag-high),0.12); }
+    .moisture-track { background: linear-gradient(90deg, rgba(2,132,199,0.35), rgba(16,185,129,0.45), rgba(251,191,36,0.45), rgba(239,68,68,0.40)); }
+    .urgency-high   { background: linear-gradient(135deg, rgba(239,68,68,0.22), rgba(249,168,37,0.22)); }
+    .urgency-medium { background: linear-gradient(135deg, rgba(251,191,36,0.20), rgba(245,158,115,0.20)); }
+    .urgency-low    { background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(34,197,94,0.18)); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8 text-center md:text-left text-shadow-sm">
+    <h2 class="text-5xl md:text-6xl font-light mb-4">Agriculture <span class="font-bold">Analytics</span></h2>
+    <p class="text-xl text-sky-100/90 font-light tracking-wide">Soil moisture, evapotranspiration, and frost warnings for informed farming.</p>
+</header>
+
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Region / Control Card -->
+    <div class="cmd-card rounded-[2rem] p-6 md:p-8 flex flex-col gap-5">
+        <div class="flex items-center gap-3">
+            <div class="icon-tile"><span class="text-xl">🌾</span></div>
+            <h3 class="text-xl font-bold text-white">Field Region</h3>
+        </div>
+        <div class="flex flex-col gap-1">
+            <label class="field-label">Region</label>
+            <select id="ag-city" class="field glass-select">
+                {% for c in cities %}<option value="{{ c }}">{{ c|title }}</option>{% endfor %}
+            </select>
+        </div>
+        <button id="ag-calc"
+                class="cmd-btn cmd-btn-primary w-full rounded-full py-3 text-sm font-medium transition-all">
+            <span class="btn-label">Analyze Soil</span>
+        </button>
+        <p class="text-xs text-sky-100/60 mt-1 text-center">Data updates with the daily model cycle.</p>
+    </div>
+
+    <!-- Primary Metrics -->
+    <div class="lg:col-span-2">
+        <div id="ag-result" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <!-- Soil Moisture -->
+            <div class="cmd-card rounded-2xl p-5 text-center flex flex-col items-center gap-3">
+                <div class="icon-tile"><span>💧</span></div>
+                <p class="text-xs uppercase tracking-widest text-sky-100/70">Soil Moisture</p>
+                <p id="ag-moist" class="text-3xl font-light mt-1">—</p>
+                <div class="w-full mt-2">
+                    <div id="moisture-bar" class="moisture-track h-2 rounded-full overflow-hidden">
+                        <div id="moisture-fill"
+                             class="h-full w-0 bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-400 rounded-full transition-all duration-700 ease-out"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-sky-100/50 mt-1">
+                        <span>Dry</span><span>Optimal</span><span>Saturated</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evapotranspiration -->
+            <div class="cmd-card rounded-2xl p-5 text-center flex flex-col items-center gap-3">
+                <div class="icon-tile"><span>☀️</span></div>
+                <p class="text-xs uppercase tracking-widest text-sky-100/70">Evapotranspiration</p>
+                <p id="ag-evap" class="text-3xl font-light mt-1">—</p>
+                <p id="ag-et0-method" class="text-[10px] text-sky-100/50 mt-1">—</p>
+            </div>
+
+            <!-- Frost Risk -->
+            <div class="cmd-card rounded-2xl p-5 text-center flex flex-col items-center gap-3">
+                <div class="icon-tile" style="background: linear-gradient(135deg, rgba(2,132,199,.25), rgba(147,197,254,.25))">
+                    <span>🌨️</span>
+                </div>
+                <p class="text-xs uppercase tracking-widest text-sky-100/70">Frost Risk</p>
+                <p id="ag-frost" data-frost="Low" class="text-3xl font-light mt-1 transition-all">—</p>
+            </div>
+        </div>
+
+        <!-- Irrigation Guidance -->
+        <div id="ag-advice"
+             class="cmd-card rounded-[2rem] p-6 md:p-8 flex flex-col gap-4 min-h-[180px]">
+            <div class="flex items-center gap-3">
+                <div class="icon-tile"><span>🛠️</span></div>
+                <h3 class="text-lg font-bold text-white">Irrigation Guidance</h3>
+                <span id="ag-urgency"
+                      class="ml-auto text-xs font-bold px-3 py-1 rounded-full urgency-low">
+                    —
+                </span>
+            </div>
+            <p id="ag-advice-text" class="text-sky-100/90 font-light leading-relaxed text-sm"></p>
+            <div id="ag-tips" class="grid sm:grid-cols-2 gap-3 mt-2">
+                <!-- net irrigation + water-saving tip tiles -->
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/agriculture.js') }}"></script>
+{% endblock %}
